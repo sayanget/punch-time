@@ -142,8 +142,12 @@ def add_punch():
     if date not in punches[user_id]:
         punches[user_id][date] = []
     
-    # 添加打卡时间
-    punch_time = f"{date}T{time}"
+    # 只保留时分,去掉秒(HH:MM格式)
+    time_parts = time.split(':')
+    time_hhmm = f"{time_parts[0]}:{time_parts[1]}"
+    
+    # 添加打卡时间(只精确到分钟)
+    punch_time = f"{date}T{time_hhmm}"
     
     # 检查是否已打卡
     if punch_time not in punches[user_id][date]:
