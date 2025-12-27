@@ -239,19 +239,89 @@ def export_punches():
     punches = load_punches()
     user_punches = punches.get(session['user_id'], {})
     
-    # 准备CSV数据
-    csv_data = "日期,第1次,第2次,第3次,第4次\n"
-    for date, times in user_punches.items():
+    # 添加UTF-8 BOM以确保Excel正确显示中文
+    csv_data = "\ufeff"
+    
+    # CSV表头 - 添加工作时长列
+    csv_data += "日期,第1次,第2次,第3次,第4次,上午时长,下午时长,总时长\n"
+    
+    # 用于跟踪已处理的末班打卡记录,避免重复
+    processed_late_shifts = set()
+    
+    for date in sorted(user_punches.keys()):
+        times = user_punches[date]
+        
+        # 过滤掉重复的末班打卡记录
+        filtered_times = []
+        for t in times:
+            # 检查是否为末班打卡(凌晨6点前)
+            try:
+                dt = datetime.fromisoformat(t)
+                if dt.hour < 6:
+                    # 如果这个时间戳已经在前一天处理过,跳过
+                    if t in processed_late_shifts:
+                        continue
+                    processed_late_shifts.add(t)
+            except:
+                pass
+            filtered_times.append(t)
+        
         # 确保最多只取4个时间
-        formatted_times = times[:4] if len(times) >= 4 else times
-        row = [date] + formatted_times
+        formatted_times = filtered_times[:4] if len(filtered_times) >= 4 else filtered_times
+        
+        # 格式化时间为易读格式 (YYYY-MM-DD HH:MM:SS)
+        readable_times = []
+        for t in formatted_times:
+            try:
+                dt = datetime.fromisoformat(t)
+                readable_times.append(dt.strftime('%Y-%m-%d %H:%M:%S'))
+            except:
+                readable_times.append(t)
+        
+        # 计算工作时长
+        morning_duration = ""
+        afternoon_duration = ""
+        total_duration = ""
+        
+        if len(formatted_times) >= 4:
+            try:
+                t1 = datetime.fromisoformat(formatted_times[0])
+                t2 = datetime.fromisoformat(formatted_times[1])
+                t3 = datetime.fromisoformat(formatted_times[2])
+                t4 = datetime.fromisoformat(formatted_times[3])
+                
+                # 计算上午时长(第1次到第2次)
+                morning_ms = (t2 - t1).total_seconds()
+                morning_hours = int(morning_ms // 3600)
+                morning_minutes = int((morning_ms % 3600) // 60)
+                morning_duration = f"{morning_hours}小时{morning_minutes}分钟"
+                
+                # 计算下午时长(第3次到第4次)
+                afternoon_ms = (t4 - t3).total_seconds()
+                afternoon_hours = int(afternoon_ms // 3600)
+                afternoon_minutes = int((afternoon_ms % 3600) // 60)
+                afternoon_duration = f"{afternoon_hours}小时{afternoon_minutes}分钟"
+                
+                # 计算总时长
+                total_ms = morning_ms + afternoon_ms
+                total_hours = int(total_ms // 3600)
+                total_minutes = int((total_ms % 3600) // 60)
+                total_duration = f"{total_hours}小时{total_minutes}分钟"
+            except:
+                pass
+        
+        # 填充空白列以确保CSV格式正确
+        while len(readable_times) < 4:
+            readable_times.append("")
+        
+        row = [date] + readable_times + [morning_duration, afternoon_duration, total_duration]
         csv_data += ",".join(row) + "\n"
     
     # 设置响应头以触发下载
     response = app.response_class(
         response=csv_data,
         status=200,
-        mimetype='text/csv'
+        mimetype='text/csv; charset=utf-8'
     )
     response.headers['Content-Disposition'] = 'attachment; filename=punches.csv'
     return response
