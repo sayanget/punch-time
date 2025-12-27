@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: punch-timer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "from waitress import serve; from app import app, init_data_files; init_data_files(); serve(app, host='0.0.0.0', port=$PORT)"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: False
+    healthCheckPath: /login
