@@ -201,6 +201,28 @@ def delete_punch(date, timestamp):
                 punch_list.remove(timestamp)
                 if not punch_list:  # 如果日期下没有打卡记录了,删除该日期
                     del punches[user_id][date]
+                
+                # 检查是否为末班打卡(凌晨6点前的记录)
+                # 如果是,也需要从前一天的记录中删除
+                try:
+                    from datetime import datetime, timedelta
+                    punch_dt = datetime.fromisoformat(timestamp)
+                    if punch_dt.hour < 6:  # 凌晨6点前的记录
+                        # 计算前一天的日期
+                        current_date = datetime.strptime(date, '%Y-%m-%d')
+                        previous_date = current_date - timedelta(days=1)
+                        previous_date_str = previous_date.strftime('%Y-%m-%d')
+                        
+                        # 如果前一天也有这条记录,删除它
+                        if previous_date_str in punches[user_id]:
+                            if timestamp in punches[user_id][previous_date_str]:
+                                punches[user_id][previous_date_str].remove(timestamp)
+                                if not punches[user_id][previous_date_str]:
+                                    del punches[user_id][previous_date_str]
+                except Exception as e:
+                    # 如果处理双记录失败,记录错误但不影响主删除操作
+                    print(f"处理双记录时出错: {str(e)}")
+                
                 save_punches(punches)
                 return jsonify({'success': True, 'message': '删除成功'})
             else:
