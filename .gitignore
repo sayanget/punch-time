@@ -84,7 +84,6 @@ Thumbs.db
 *.tmp
 *.temp
 query
-index.html
 
 # 测试文件
 test_api.html
