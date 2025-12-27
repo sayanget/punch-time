@@ -16,7 +16,9 @@
 
 ### 在线演示
 
-访问部署的应用: [即将部署到Render]
+访问部署的应用: **[https://punch-time.onrender.com](https://punch-time.onrender.com)**
+
+> 注意: 免费套餐在15分钟无活动后会休眠,首次访问可能需要等待30-50秒唤醒服务。
 
 ### 本地运行
 

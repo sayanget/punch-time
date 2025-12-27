@@ -21,6 +21,7 @@ def init_data_files():
     if not os.path.exists(PUNCHES_FILE):
         with open(PUNCHES_FILE, 'w', encoding='utf-8') as f:
             json.dump({}, f)
+init_data_files()
 
 # 加载用户数据
 def load_users():
@@ -235,6 +236,5 @@ def export_punches():
 def index_html():
     return render_template('index.html')
 
-if __name__ == '__main__':
-    init_data_files()
+if __name__ == '__main__':    
     app.run(debug=True, host='0.0.0.0', port=7777)
