@@ -746,7 +746,7 @@
           return `<tr>
             <td>${punchNumber}</td>
             <td>${timeDisplay}${dualRecordIndicator}</td>
-            <td><button class="delete-btn" data-date="${dateISO}" data-index="${idx}">${getTranslation('delete')}</button></td>
+            <td><button class="delete-btn" data-date="${dateISO}" data-timestamp="${t}">${getTranslation('delete')}</button></td>
           </tr>`;
         }).join('');
         punchListEl.innerHTML = `
@@ -766,12 +766,14 @@
         document.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', async function() {
             const date = this.getAttribute('data-date');
-            const index = this.getAttribute('data-index');
+            const timestamp = this.getAttribute('data-timestamp');
             
             // 显示确认对话框
             if (confirm(getTranslation('confirm_delete'))) {
               try {
-                const response = await fetch(`/api/punch/${date}/${index}`, {
+                // URL编码时间戳以处理特殊字符
+                const encodedTimestamp = encodeURIComponent(timestamp);
+                const response = await fetch(`/api/punch/${date}/${encodedTimestamp}`, {
                   method: 'DELETE'
                 });
                 

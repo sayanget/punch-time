@@ -187,23 +187,26 @@ def add_punch():
         return jsonify({'success': False, 'message': '该时间已打卡'})
 
 # 删除打卡记录
-@app.route('/api/punch/<date>/<index>', methods=['DELETE'])
+@app.route('/api/punch/<date>/<path:timestamp>', methods=['DELETE'])
 @login_required
-def delete_punch(date, index):
+def delete_punch(date, timestamp):
     punches = load_punches()
     user_id = session['user_id']
     
     if user_id in punches and date in punches[user_id]:
         try:
-            index = int(index)
-            if 0 <= index < len(punches[user_id][date]):
-                punches[user_id][date].pop(index)
-                if not punches[user_id][date]:  # 如果日期下没有打卡记录了，删除该日期
+            # 查找并删除匹配的时间戳
+            punch_list = punches[user_id][date]
+            if timestamp in punch_list:
+                punch_list.remove(timestamp)
+                if not punch_list:  # 如果日期下没有打卡记录了,删除该日期
                     del punches[user_id][date]
                 save_punches(punches)
                 return jsonify({'success': True, 'message': '删除成功'})
-        except (ValueError, IndexError):
-            pass
+            else:
+                return jsonify({'success': False, 'message': '未找到该打卡记录'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
     
     return jsonify({'success': False, 'message': '删除失败'})
 
