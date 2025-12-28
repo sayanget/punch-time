@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///punch_timer.db')
 
 # 修复Heroku/Render的postgres://协议问题(需要postgresql://)
+# 同时指定使用psycopg3驱动
 if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+psycopg://', 1)
+elif DATABASE_URL.startswith('postgresql://'):
+    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://', 1)
 
 # 创建数据库引擎
 # 对于SQLite使用check_same_thread=False
