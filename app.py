@@ -1,47 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
+# 导入数据库模块
+from db_config import init_database, close_db
+from db_models import (
+    create_user, get_user_by_username, user_exists, get_user_id_by_username,
+    add_punch, get_user_punches, get_punches_by_date, delete_punch, count_punches_by_date
+)
+
 app = Flask(__name__, template_folder='templates', static_folder='.', static_url_path='')
-app.secret_key = 'your-secret_key_here'  # 在生产环境中应该使用环境变量
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret_key_here')  # 使用环境变量
 
-# 数据文件路径
-USERS_FILE = 'users.json'
-PUNCHES_FILE = 'punches.json'
+# 初始化数据库
+init_database()
 
-# 确保数据文件存在
-def init_data_files():
-    if not os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump({}, f)
-    
-    if not os.path.exists(PUNCHES_FILE):
-        with open(PUNCHES_FILE, 'w', encoding='utf-8') as f:
-            json.dump({}, f)
-init_data_files()
-
-# 加载用户数据
-def load_users():
-    with open(USERS_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-# 保存用户数据
-def save_users(users):
-    with open(USERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(users, f, ensure_ascii=False, indent=2)
-
-# 加载打卡数据
-def load_punches():
-    with open(PUNCHES_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-# 保存打卡数据
-def save_punches(punches):
-    with open(PUNCHES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(punches, f, ensure_ascii=False, indent=2)
 
 # 登录验证装饰器
 def login_required(f):
@@ -66,21 +41,19 @@ def register():
         password = request.form['password']
         
         # 检查用户名是否已存在
-        users = load_users()
-        if username in users:
+        if user_exists(username):
             flash('用户名已存在')
             return redirect(url_for('register'))
         
         # 创建新用户
         hashed_password = generate_password_hash(password)
-        users[username] = {
-            'password': hashed_password,
-            'created_at': datetime.now().isoformat()
-        }
-        save_users(users)
-        
-        flash('注册成功，请登录')
-        return redirect(url_for('login'))
+        try:
+            create_user(username, hashed_password)
+            flash('注册成功，请登录')
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f'注册失败: {str(e)}')
+            return redirect(url_for('register'))
     
     return render_template('register.html')
 
@@ -92,8 +65,8 @@ def login():
         password = request.form['password']
         
         # 验证用户
-        users = load_users()
-        if username in users and check_password_hash(users[username]['password'], password):
+        user = get_user_by_username(username)
+        if user and check_password_hash(user[2], password):  # user[2] is password_hash
             session['user_id'] = username
             return redirect(url_for('index'))
         else:
@@ -118,29 +91,27 @@ def current_user():
 @app.route('/api/punches')
 @login_required
 def get_punches():
-    punches = load_punches()
-    user_punches = punches.get(session['user_id'], {})
-    return jsonify(user_punches)
+    username = session['user_id']
+    user_id = get_user_id_by_username(username)
+    if user_id:
+        user_punches = get_user_punches(user_id)
+        return jsonify(user_punches)
+    return jsonify({})
 
 # 添加打卡记录（支持末班打卡双记录显示）
 @app.route('/api/punch', methods=['POST'])
 @login_required
-def add_punch():
+def add_punch_route():
     data = request.get_json()
     date = data['date']
     time = data['time']
     is_late_shift_manual = data.get('lateShift', False)  # 是否为末班打卡（手动标记）
     
-    punches = load_punches()
-    user_id = session['user_id']
+    username = session['user_id']
+    user_id = get_user_id_by_username(username)
     
-    # 如果用户还没有打卡记录，初始化
-    if user_id not in punches:
-        punches[user_id] = {}
-    
-    # 如果日期还没有打卡记录，初始化
-    if date not in punches[user_id]:
-        punches[user_id][date] = []
+    if not user_id:
+        return jsonify({'success': False, 'message': '用户不存在'})
     
     # 只保留时分,去掉秒(HH:MM格式)
     time_parts = time.split(':')
@@ -149,99 +120,86 @@ def add_punch():
     # 添加打卡时间(只精确到分钟)
     punch_time = f"{date}T{time_hhmm}"
     
-    # 检查是否已打卡
-    if punch_time not in punches[user_id][date]:
-        # 添加到指定日期
-        punches[user_id][date].append(punch_time)
-        punches[user_id][date].sort()
+    # 自动判断是否为末班打卡（时间在早上6点前）
+    hour = int(time_parts[0])
+    is_late_shift_auto = hour < 6  # 早上6点前的打卡自动标记为末班打卡
+    is_late_shift = is_late_shift_manual or is_late_shift_auto
+    
+    try:
+        # 添加到当前日期
+        punch_id = add_punch(user_id, date, punch_time, is_late_shift)
         
-        # 自动判断是否为末班打卡（时间在早上6点前）
-        time_parts = time.split(':')
-        hour = int(time_parts[0])
-        is_late_shift_auto = hour < 6  # 早上6点前的打卡自动标记为末班打卡
+        if punch_id is None:
+            return jsonify({'success': False, 'message': '该时间已打卡'})
         
-        # 如果手动标记为末班打卡或自动判断为末班打卡，则同时添加到前一天的记录中
-        if is_late_shift_manual or is_late_shift_auto:
-            from datetime import datetime, timedelta
+        # 如果是末班打卡，同时添加到前一天的记录中
+        if is_late_shift:
             current_date = datetime.strptime(date, '%Y-%m-%d')
             previous_date = current_date - timedelta(days=1)
             previous_date_str = previous_date.strftime('%Y-%m-%d')
             
-            # 初始化前一天的记录
-            if previous_date_str not in punches[user_id]:
-                punches[user_id][previous_date_str] = []
-            
-            # 添加到前一天的记录中（如果该时间尚未存在于前一天的记录中）
-            if punch_time not in punches[user_id][previous_date_str]:
-                punches[user_id][previous_date_str].append(punch_time)
-                punches[user_id][previous_date_str].sort()
+            # 添加到前一天的记录中
+            add_punch(user_id, previous_date_str, punch_time, is_late_shift)
         
-        # 限制每天最多4次打卡
-        if len(punches[user_id][date]) > 4:
-            punches[user_id][date] = punches[user_id][date][:4]
-        
-        save_punches(punches)
+        # 统计当天打卡次数
+        count = count_punches_by_date(user_id, date)
         
         # 根据是否为末班打卡显示不同的消息
-        if is_late_shift_manual or is_late_shift_auto:
-            return jsonify({'success': True, 'message': f'已记录第 {len(punches[user_id][date])} 次打卡（末班）'})
+        if is_late_shift:
+            return jsonify({'success': True, 'message': f'已记录第 {count} 次打卡（末班）'})
         else:
-            return jsonify({'success': True, 'message': f'已记录第 {len(punches[user_id][date])} 次打卡'})
-    else:
-        return jsonify({'success': False, 'message': '该时间已打卡'})
+            return jsonify({'success': True, 'message': f'已记录第 {count} 次打卡'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'打卡失败: {str(e)}'})
 
 # 删除打卡记录
 @app.route('/api/punch/<date>/<path:timestamp>', methods=['DELETE'])
 @login_required
-def delete_punch(date, timestamp):
-    punches = load_punches()
-    user_id = session['user_id']
+def delete_punch_route(date, timestamp):
+    username = session['user_id']
+    user_id = get_user_id_by_username(username)
     
-    if user_id in punches and date in punches[user_id]:
-        try:
-            # 查找并删除匹配的时间戳
-            punch_list = punches[user_id][date]
-            if timestamp in punch_list:
-                punch_list.remove(timestamp)
-                if not punch_list:  # 如果日期下没有打卡记录了,删除该日期
-                    del punches[user_id][date]
-                
-                # 检查是否为末班打卡(凌晨6点前的记录)
-                # 如果是,也需要从前一天的记录中删除
-                try:
-                    from datetime import datetime, timedelta
-                    punch_dt = datetime.fromisoformat(timestamp)
-                    if punch_dt.hour < 6:  # 凌晨6点前的记录
-                        # 计算前一天的日期
-                        current_date = datetime.strptime(date, '%Y-%m-%d')
-                        previous_date = current_date - timedelta(days=1)
-                        previous_date_str = previous_date.strftime('%Y-%m-%d')
-                        
-                        # 如果前一天也有这条记录,删除它
-                        if previous_date_str in punches[user_id]:
-                            if timestamp in punches[user_id][previous_date_str]:
-                                punches[user_id][previous_date_str].remove(timestamp)
-                                if not punches[user_id][previous_date_str]:
-                                    del punches[user_id][previous_date_str]
-                except Exception as e:
-                    # 如果处理双记录失败,记录错误但不影响主删除操作
-                    print(f"处理双记录时出错: {str(e)}")
-                
-                save_punches(punches)
-                return jsonify({'success': True, 'message': '删除成功'})
-            else:
-                return jsonify({'success': False, 'message': '未找到该打卡记录'})
-        except Exception as e:
-            return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
+    if not user_id:
+        return jsonify({'success': False, 'message': '用户不存在'})
     
-    return jsonify({'success': False, 'message': '删除失败'})
+    try:
+        # 删除打卡记录
+        success = delete_punch(user_id, timestamp)
+        
+        if success:
+            # 检查是否为末班打卡(凌晨6点前的记录)
+            # 如果是,也需要从前一天的记录中删除
+            try:
+                punch_dt = datetime.fromisoformat(timestamp)
+                if punch_dt.hour < 6:  # 凌晨6点前的记录
+                    # 计算前一天的日期
+                    current_date = datetime.strptime(date, '%Y-%m-%d')
+                    previous_date = current_date - timedelta(days=1)
+                    previous_date_str = previous_date.strftime('%Y-%m-%d')
+                    
+                    # 从前一天的记录中也删除
+                    delete_punch(user_id, timestamp)
+            except Exception as e:
+                # 如果处理双记录失败,记录错误但不影响主删除操作
+                print(f"处理双记录时出错: {str(e)}")
+            
+            return jsonify({'success': True, 'message': '删除成功'})
+        else:
+            return jsonify({'success': False, 'message': '未找到该打卡记录'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
 
 # 导出个人打卡数据
 @app.route('/api/export')
 @login_required
 def export_punches():
-    punches = load_punches()
-    user_punches = punches.get(session['user_id'], {})
+    username = session['user_id']
+    user_id = get_user_id_by_username(username)
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    user_punches = get_user_punches(user_id)
     
     # 添加UTF-8 BOM以确保Excel正确显示中文
     csv_data = "\ufeff"

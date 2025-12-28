@@ -33,6 +33,13 @@ env/
 users.json
 punches.json
 
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+migrations/
+backup/
+
 # 备份文件
 backups/
 *.tar.gz
