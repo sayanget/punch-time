@@ -120,9 +120,9 @@ def add_punch_route():
     # 添加打卡时间(只精确到分钟)
     punch_time = f"{date}T{time_hhmm}"
     
-    # 自动判断是否为末班打卡（时间在早上6点前）
+    # 自动判断是否为末班打卡（时间在早上5点前）
     hour = int(time_parts[0])
-    is_late_shift_auto = hour < 6  # 早上6点前的打卡自动标记为末班打卡
+    is_late_shift_auto = hour < 5  # 早上5点前的打卡自动标记为末班打卡
     is_late_shift = is_late_shift_manual or is_late_shift_auto
     
     try:
@@ -167,11 +167,11 @@ def delete_punch_route(date, timestamp):
         success = delete_punch(user_id, timestamp)
         
         if success:
-            # 检查是否为末班打卡(凌晨6点前的记录)
+            # 检查是否为末班打卡(凌晨5点前的记录)
             # 如果是,也需要从前一天的记录中删除
             try:
                 punch_dt = datetime.fromisoformat(timestamp)
-                if punch_dt.hour < 6:  # 凌晨6点前的记录
+                if punch_dt.hour < 5:  # 凌晨5点前的记录
                     # 计算前一天的日期
                     current_date = datetime.strptime(date, '%Y-%m-%d')
                     previous_date = current_date - timedelta(days=1)
@@ -216,10 +216,10 @@ def export_punches():
         # 过滤掉重复的末班打卡记录
         filtered_times = []
         for t in times:
-            # 检查是否为末班打卡(凌晨6点前)
+            # 检查是否为末班打卡(凌晨5点前)
             try:
                 dt = datetime.fromisoformat(t)
-                if dt.hour < 6:
+                if dt.hour < 5:
                     # 如果这个时间戳已经在前一天处理过,跳过
                     if t in processed_late_shifts:
                         continue
