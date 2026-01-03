@@ -54,78 +54,77 @@ def get_db():
 def init_database():
     """初始化数据库表结构"""
     try:
-        with engine.connect() as conn:
-            # 创建users表
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """))
-            
-            # 创建punches表
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS punches (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    punch_date DATE NOT NULL,
-                    punch_time TIMESTAMP NOT NULL,
-                    is_late_shift BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, punch_time),
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            """))
-            
-            # 创建索引
-            conn.execute(text("""
-                CREATE INDEX IF NOT EXISTS idx_punches_user_date 
-                ON punches(user_id, punch_date)
-            """))
-            
-            conn.commit()
-            logger.info("数据库表初始化成功")
+        if DATABASE_URL.startswith('sqlite'):
+            # SQLite初始化逻辑
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS punches (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        punch_date DATE NOT NULL,
+                        punch_time TIMESTAMP NOT NULL,
+                        is_late_shift BOOLEAN DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, punch_date, punch_time),
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                """))
+                
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_punches_user_date 
+                    ON punches(user_id, punch_date)
+                """))
+                
+                conn.commit()
+                logger.info("SQLite数据库表初始化成功")
+        else:
+            # PostgreSQL初始化逻辑
+            with engine.connect() as conn:
+                # 创建users表
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                
+                # 创建punches表
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS punches (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL,
+                        punch_date DATE NOT NULL,
+                        punch_time TIMESTAMP NOT NULL,
+                        is_late_shift BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, punch_date, punch_time),
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                """))
+                
+                # 创建索引
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS idx_punches_user_date 
+                    ON punches(user_id, punch_date)
+                """))
+                
+                conn.commit()
+                logger.info("PostgreSQL数据库表初始化成功")
             
     except Exception as e:
         logger.error(f"数据库初始化失败: {e}")
-        # 对于SQLite,使用不同的语法
-        if DATABASE_URL.startswith('sqlite'):
-            try:
-                with engine.connect() as conn:
-                    conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS users (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            username VARCHAR(50) UNIQUE NOT NULL,
-                            password_hash VARCHAR(255) NOT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    """))
-                    
-                    conn.execute(text("""
-                        CREATE TABLE IF NOT EXISTS punches (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_id INTEGER NOT NULL,
-                            punch_date DATE NOT NULL,
-                            punch_time TIMESTAMP NOT NULL,
-                            is_late_shift BOOLEAN DEFAULT 0,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            UNIQUE(user_id, punch_time),
-                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                        )
-                    """))
-                    
-                    conn.execute(text("""
-                        CREATE INDEX IF NOT EXISTS idx_punches_user_date 
-                        ON punches(user_id, punch_date)
-                    """))
-                    
-                    conn.commit()
-                    logger.info("SQLite数据库表初始化成功")
-            except Exception as sqlite_error:
-                logger.error(f"SQLite初始化失败: {sqlite_error}")
-                raise
+        raise
     
     # 修复唯一约束问题(PostgreSQL)
     if not DATABASE_URL.startswith('sqlite'):

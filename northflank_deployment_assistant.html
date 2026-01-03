@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northflank 部署助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            height: 8px;
+            margin-top: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-size: 1.8em;
+            color: #333;
+        }
+
+        .step-content {
+            margin-left: 65px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .instruction {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .instruction h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .env-var {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .env-var strong {
+            color: #856404;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .checklist {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .checklist li {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+
+        .checklist li:before {
+            content: '✓';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .link-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+
+        .link-button:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .completion {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .completion-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .completion h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .final-url {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.2em;
+            word-break: break-all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Northflank 部署助手</h1>
+            <p>一步步引导你完成部署</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: 注册账户 -->
+            <div class="step active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">注册 Northflank 账户</div>
+                </div>
+                <div class="step-content">
+                    <div class="alert alert-info">
+                        <strong>📝 为什么选择 Northflank?</strong><br>
+                        ✅ 完全免费,24/7运行<br>
+                        ✅ 无休眠机制(解决Render的15秒延迟)<br>
+                        ✅ 免费PostgreSQL数据库
+                    </div>
+
+                    <div class="instruction">
+                        <h3>操作步骤:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>点击下方按钮打开Northflank注册页面</li>
+                            <li>选择 "Sign up with GitHub"(推荐)或使用邮箱注册</li>
+                            <li>完成GitHub授权或邮箱验证</li>
+                            <li>登录到Northflank控制台</li>
+                        </ol>
+                    </div>
+
+                    <a href="https://app.northflank.com/signup" target="_blank" class="link-button">
+                        🔗 打开 Northflank 注册页面
+                    </a>
+
+                    <div class="alert alert-warning" style="margin-top: 20px;">
+                        <strong>⚠️ 注意:</strong> 注册完成后,保持Northflank页面打开,然后点击下方"下一步"继续。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: 创建项目 -->
+            <div class="step" id="step2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">创建项目</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>在 Northflank 控制台中:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>点击 <strong>"Create Project"</strong> 按钮</li>
+                            <li>项目名称输入: <code
+                                    style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">punch-timer</code>
+                            </li>
+                            <li>点击 <strong>"Create Project"</strong> 确认</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✓ 完成标志:</strong> 你应该看到项目已创建,并进入项目页面。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: 创建数据库 -->
+            <div class="step" id="step3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">创建 PostgreSQL 数据库</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>操作步骤:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>在项目页面,点击 <strong>"Add Service"</strong> → <strong>"Database"</strong></li>
+                            <li>选择 <strong>"PostgreSQL"</strong></li>
+                            <li>配置:
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Name: <code
+                                            style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">punch-timer-db</code>
+                                    </li>
+                                    <li>Version: 选择最新版本(如 15 或 16)</li>
+                                    <li>Plan: 选择 <strong>"Free"</strong> 套餐</li>
+                                </ul>
+                            </li>
+                            <li>点击 <strong>"Create Database"</strong></li>
+                            <li>等待数据库状态变为 <strong>"Running"</strong>(约1-2分钟)</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>🔑 重要:</strong> 数据库创建完成后,点击数据库服务,找到 <strong>"Connection Details"</strong>,复制
+                        <strong>"Internal Connection String"</strong>,格式类似:<br>
+                        <code
+                            style="background: #fff; padding: 5px; display: block; margin-top: 5px; border-radius: 3px;">postgresql://user:password@host:5432/database</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: 部署应用 -->
+            <div class="step" id="step4">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">部署应用</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>连接 GitHub 仓库:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>点击 <strong>"Add Service"</strong> → <strong>"Combined Service"</strong></li>
+                            <li>选择 <strong>"Git Repository"</strong></li>
+                            <li>点击 <strong>"Connect GitHub"</strong> 并授权</li>
+                            <li>选择你的 <code>punch-timer</code> 仓库</li>
+                            <li>分支选择: <code>main</code> 或 <code>master</code></li>
+                        </ol>
+                    </div>
+
+                    <div class="instruction">
+                        <h3>配置服务:</h3>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Name: <code
+                                    style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">punch-timer-app</code>
+                            </li>
+                            <li>Build Type: <strong>"Dockerfile"</strong></li>
+                            <li>Dockerfile Path: <code>Dockerfile</code></li>
+                            <li>Port: <code>7777</code></li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 提示:</strong> 先不要点击创建,我们需要先配置环境变量!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: 配置环境变量 -->
+            <div class="step" id="step5">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">配置环境变量</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>在 "Environment Variables" 部分添加:</h3>
+                    </div>
+
+                    <div class="env-var">
+                        <strong>SECRET_KEY</strong><br>
+                        <span style="font-size: 0.9em;">生成随机密钥,复制下方命令在本地运行:</span>
+                        <div class="code-block">python -c "import secrets; print(secrets.token_hex(32))"</div>
+                        <span style="font-size: 0.9em;">将输出的字符串作为 SECRET_KEY 的值</span>
+                    </div>
+
+                    <div class="env-var">
+                        <strong>DATABASE_URL</strong><br>
+                        <span style="font-size: 0.9em;">粘贴步骤3中复制的数据库连接字符串</span>
+                    </div>
+
+                    <div class="env-var">
+                        <strong>PORT</strong><br>
+                        <span style="font-size: 0.9em;">值: <code>7777</code></span>
+                    </div>
+
+                    <div class="env-var">
+                        <strong>FLASK_DEBUG</strong><br>
+                        <span style="font-size: 0.9em;">值: <code>False</code></span>
+                    </div>
+
+                    <div class="alert alert-success" style="margin-top: 20px;">
+                        <strong>✓ 配置完成后:</strong> 点击 <strong>"Create Service"</strong> 开始部署!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: 等待部署 -->
+            <div class="step" id="step6">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">等待部署完成</div>
+                </div>
+                <div class="step-content">
+                    <div class="alert alert-info">
+                        <strong>⏳ 部署中...</strong><br>
+                        Northflank 正在:
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>克隆 GitHub 仓库</li>
+                            <li>构建 Docker 镜像</li>
+                            <li>启动应用容器</li>
+                            <li>初始化数据库</li>
+                        </ul>
+                    </div>
+
+                    <div class="instruction">
+                        <h3>监控部署:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>在服务列表中找到 <code>punch-timer-app</code></li>
+                            <li>点击进入,查看 <strong>"Logs"</strong> 标签</li>
+                            <li>等待状态变为 <strong>"Running"</strong>(绿色)</li>
+                            <li>通常需要 2-5 分钟</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ 如果构建失败:</strong> 查看日志找到错误信息,通常是环境变量配置问题。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 7: 完成 -->
+            <div class="step" id="step7">
+                <div class="step-header">
+                    <div class="step-number">7</div>
+                    <div class="step-title">获取访问地址</div>
+                </div>
+                <div class="step-content">
+                    <div class="completion">
+                        <div class="completion-icon">🎉</div>
+                        <h2>部署成功!</h2>
+                        <p style="color: #666; margin: 15px 0;">你的打卡计时器应用已经在 Northflank 上运行了!</p>
+                    </div>
+
+                    <div class="instruction">
+                        <h3>获取访问地址:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>在服务详情页,点击 <strong>"Networking"</strong> 标签</li>
+                            <li>找到 <strong>"Public URL"</strong></li>
+                            <li>复制 URL,格式类似: <code>https://punch-timer-app-xxxxx.northflank.app</code></li>
+                            <li>在浏览器中访问该地址</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✅ 测试应用:</strong>
+                        <ul class="checklist" style="margin-top: 10px;">
+                            <li>注册新用户</li>
+                            <li>登录系统</li>
+                            <li>进行打卡操作</li>
+                            <li>导出CSV数据</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>🚀 优势验证:</strong><br>
+                        关闭浏览器等待30分钟后再次访问,你会发现<strong>没有任何延迟</strong>,这就是Northflank相比Render的优势!
+                    </div>
+
+                    <div class="instruction">
+                        <h3>后续操作:</h3>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>✅ 启用自动部署(Git push 自动更新)</li>
+                            <li>✅ 配置自定义域名(可选)</li>
+                            <li>✅ 设置监控告警(可选)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="buttons">
+                <button class="btn-secondary" id="prevBtn" onclick="changeStep(-1)" disabled>上一步</button>
+                <button class="btn-primary" id="nextBtn" onclick="changeStep(1)">下一步</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 7;
+
+        function updateProgress() {
+            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+
+            // Show current step
+            document.getElementById('step' + step).classList.add('active');
+
+            // Update buttons
+            document.getElementById('prevBtn').disabled = step === 1;
+
+            const nextBtn = document.getElementById('nextBtn');
+            if (step === totalSteps) {
+                nextBtn.textContent = '完成';
+                nextBtn.onclick = function () {
+                    alert('🎉 恭喜!部署完成!\n\n你的应用现在运行在 Northflank 上,享受24/7不间断服务!');
+                };
+            } else {
+                nextBtn.textContent = '下一步';
+                nextBtn.onclick = function () { changeStep(1); };
+            }
+
+            updateProgress();
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changeStep(direction) {
+            const newStep = currentStep + direction;
+            if (newStep >= 1 && newStep <= totalSteps) {
+                currentStep = newStep;
+                showStep(currentStep);
+            }
+        }
+
+        // Initialize
+        showStep(1);
+    </script>
+</body>
+
+</html>

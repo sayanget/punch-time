@@ -1,14 +1,34 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title data-i18n="page_title">打卡计时器</title>
   <style>
-    :root { color-scheme: light; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 24px; background: #f6f7fb; }
-    h1 { margin-bottom: 8px; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    :root {
+      color-scheme: light;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 24px;
+      background: #f6f7fb;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
     .row {
       display: flex;
       gap: 12px;
@@ -16,7 +36,7 @@
       align-items: center;
       margin-bottom: 10px;
     }
-    
+
     button {
       cursor: pointer;
       padding: 8px 14px;
@@ -26,49 +46,116 @@
       border-radius: 6px;
       font-weight: 600;
     }
-    
+
     button.secondary {
       background: #f3f4f6;
       color: #374151;
       border-color: #d1d5db;
     }
-    
-    input[type="date"], input[type="time"] {
+
+    input[type="date"],
+    input[type="time"] {
       padding: 6px 10px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       width: 140px;
       max-width: 100%;
     }
-    
-    #manual-date, #manual-time {
+
+    #manual-date,
+    #manual-time {
       width: 120px;
     }
-    
+
     #late-shift {
       width: auto;
     }
-    
-    #late-shift + span {
+
+    #late-shift+span {
       margin-left: 5px;
     }
-    
-    label { font-weight: 600; }
-    input[type="date"], input[type="time"] { padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; width: 200px; max-width: 100%; }
-    button { cursor: pointer; padding: 8px 14px; border: 1px solid #2563eb; background: #2563eb; color: #fff; border-radius: 6px; font-weight: 600; }
-    button.secondary { background: #fff; color: #2563eb; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .status { margin-top: 8px; color: #111827; font-weight: 600; }
-    .error { color: #dc2626; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-    th { background: #f3f4f6; }
-    .muted { color: #6b7280; }
-    @media (max-width: 640px) {
-      body { margin: 12px; }
-      .row { flex-direction: column; align-items: stretch; }
-      button, input[type="date"], input[type="time"] { width: 100%; }
+
+    label {
+      font-weight: 600;
     }
+
+    input[type="date"],
+    input[type="time"] {
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      width: 200px;
+      max-width: 100%;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 8px 14px;
+      border: 1px solid #2563eb;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: #2563eb;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 8px;
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #dc2626;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th,
+    td {
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f4f6;
+    }
+
+    .muted {
+      color: #6b7280;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        margin: 12px;
+      }
+
+      .row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button,
+      input[type="date"],
+      input[type="time"] {
+        width: 100%;
+      }
+    }
+
     /* 添加用户信息显示样式 */
     .user-info {
       position: absolute;
@@ -78,24 +165,28 @@
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: 12px 16px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       display: flex;
       align-items: center;
       gap: 15px;
       flex-wrap: wrap;
     }
+
     .user-info span {
       font-weight: 600;
       white-space: nowrap;
     }
+
     .user-info a {
       color: #2563eb;
       text-decoration: none;
       white-space: nowrap;
     }
+
     .user-info a:hover {
       text-decoration: underline;
     }
+
     /* 语言选择下拉菜单 */
     .language-selector {
       padding: 5px;
@@ -105,6 +196,7 @@
       font-size: 14px;
       min-width: 100px;
     }
+
     /* 提醒模态框样式 */
     .modal {
       display: none;
@@ -114,8 +206,9 @@
       top: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0,0,0,0.5);
+      background-color: rgba(0, 0, 0, 0.5);
     }
+
     .modal-content {
       background-color: #fff;
       margin: 15% auto;
@@ -125,8 +218,9 @@
       width: 80%;
       max-width: 500px;
       text-align: center;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
+
     .close {
       color: #aaa;
       float: right;
@@ -134,18 +228,22 @@
       font-weight: bold;
       cursor: pointer;
     }
+
     .close:hover {
       color: #000;
     }
+
     .reminder-btn {
       background-color: #10b981;
       border-color: #10b981;
       margin: 10px;
     }
+
     .reminder-btn:hover {
       background-color: #059669;
       border-color: #059669;
     }
+
     /* 移动端适配优化 */
     @media (max-width: 768px) {
       .user-info {
@@ -155,72 +253,74 @@
         margin-bottom: 20px;
         justify-content: space-between;
       }
-      
+
       .user-info span:first-child {
         flex-grow: 1;
       }
-      
+
       .language-selector {
         min-width: 100px;
       }
-      
+
       h1 {
         font-size: 1.5em;
         text-align: center;
       }
-      
+
       .card {
         padding: 12px;
       }
-      
+
       .row {
         gap: 8px;
       }
-      
+
       button {
         padding: 10px;
         font-size: 14px;
       }
-      
-      input[type="date"], input[type="time"] {
+
+      input[type="date"],
+      input[type="time"] {
         padding: 8px;
         font-size: 14px;
       }
-      
+
       table {
         font-size: 14px;
       }
-      
-      th, td {
+
+      th,
+      td {
         padding: 6px;
       }
     }
-    
+
     @media (max-width: 480px) {
       body {
         margin: 8px;
       }
-      
+
       .user-info {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
       }
-      
-      .user-info > div {
+
+      .user-info>div {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
-      
+
       .language-selector {
         width: auto;
       }
-      
+
       h1 {
         font-size: 1.3em;
       }
-      
+
       .modal-content {
         width: 95%;
         padding: 15px;
@@ -228,10 +328,11 @@
     }
   </style>
 </head>
+
 <body>
   <div class="user-info">
     <div>
-      <span data-i18n="user_label">用户:</span> 
+      <span data-i18n="user_label">用户:</span>
       <span id="username">-</span>
     </div>
     <select id="languageSelector" class="language-selector">
@@ -241,7 +342,7 @@
     </select>
     <a href="/logout" data-i18n="logout_link">退出</a>
   </div>
-  
+
   <h1 data-i18n="main_title">打卡计时器（每日4次）</h1>
 
   <div class="card">
@@ -317,7 +418,7 @@
     const secondThirdTimerEl = document.getElementById('second-third-timer'); // 新增的计时器元素
     const usernameEl = document.getElementById('username');
     const languageSelector = document.getElementById('languageSelector');
-    
+
     // 提醒相关元素
     const reminderModal = document.getElementById('reminderModal');
     const closeReminder = document.querySelector('.close');
@@ -394,7 +495,7 @@
         // 自动检测是否为末班打卡（时间在早上6点前）
         const hour = dt.getHours();
         const autoLateShift = hour < 6;
-        
+
         const response = await fetch('/api/punch', {
           method: 'POST',
           headers: {
@@ -406,7 +507,7 @@
             lateShift: isLateShift || autoLateShift  // 手动标记或自动检测
           })
         });
-        
+
         const result = await response.json();
         if (result.success) {
           setStatus(result.message);
@@ -435,7 +536,7 @@
       // 确保有至少两个打卡时间
       if (sortedTimes && sortedTimes.length >= 2) {
         const secondPunch = new Date(sortedTimes[1]);
-        
+
         // 检查日期对象是否有效
         if (isNaN(secondPunch.getTime())) {
           clearInterval(timerInterval);
@@ -443,16 +544,16 @@
           secondThirdTimerEl.textContent = '';
           return;
         }
-        
+
         // 如果已经有第三次打卡，则停止计时器
         if (sortedTimes.length >= 3) {
           const thirdPunch = new Date(sortedTimes[2]);
-          
+
           // 检查日期对象是否有效
           if (!isNaN(thirdPunch.getTime())) {
             clearInterval(timerInterval);
             timerInterval = null;
-            
+
             // 计算间隔时间并显示
             const intervalMs = thirdPunch.getTime() - secondPunch.getTime();
             const intervalHours = Math.floor(intervalMs / (1000 * 60 * 60));
@@ -461,19 +562,19 @@
             return;
           }
         }
-        
+
         // 启动计时器
         if (timerInterval) {
           clearInterval(timerInterval);
         }
-        
+
         // 显示初始计时
         const now = new Date();
         const intervalMs = now.getTime() - secondPunch.getTime();
         const intervalHours = Math.floor(intervalMs / (1000 * 60 * 60));
         const intervalMinutes = Math.floor((intervalMs % (1000 * 60 * 60)) / (1000 * 60));
         secondThirdTimerEl.textContent = `${translateWithParams('since_second_punch', { h: intervalHours, m: intervalMinutes })}`;
-        
+
         // 每秒更新计时器
         timerInterval = setInterval(() => {
           const now = new Date();
@@ -493,30 +594,30 @@
     // 更新班次时长计时器（剔除第二次到第三次间隔）
     function updateShiftDuration(sortedTimes, dateISO) {
       const shiftDurationEl = document.getElementById('shift-duration');
-      
+
       if (!shiftDurationEl) {
         console.error('找不到班次时长元素');
         return;
       }
-      
+
       if (sortedTimes && sortedTimes.length > 0) {
         // 获取当前日期的数据以检查双记录
         async function checkAndCalculate() {
           const data = await loadData();
-          
+
           // 检查当天第一个打卡是否为双记录（来自前一天的末班打卡）
           const firstPunchTime = sortedTimes[0];
-          
+
           // 计算前一天的日期
           const currentDate = new Date(dateISO);
           const previousDate = new Date(currentDate);
           previousDate.setDate(previousDate.getDate() - 1);
           const previousDateISO = previousDate.toISOString().split('T')[0];
-          
+
           // 检查前一天是否存在相同的打卡时间（表示这是一个双记录）
           const previousPunches = data[previousDateISO] || [];
           const isFirstPunchDualRecord = previousPunches.includes(firstPunchTime);
-          
+
           // 如果当天第一个记录是双记录，则不参与计时
           if (isFirstPunchDualRecord && sortedTimes.length === 1) {
             // 如果只有1个打卡记录且是双记录，则不开始计时
@@ -525,14 +626,14 @@
             shiftDurationEl.textContent = getTranslation('waiting_for_punch');
             return;
           }
-          
+
           // 找到当天实际的打卡记录（排除来自前一天的双记录）
           const actualTodayPunches = sortedTimes.filter(time => {
             // 检查该时间是否也存在于前一天的记录中
             const isDualRecord = previousPunches.includes(time);
             return !isDualRecord; // 只保留非双记录的打卡
           });
-          
+
           // 如果没有实际的当天打卡记录，不进行计时
           if (actualTodayPunches.length === 0) {
             clearInterval(shiftTimerInterval);
@@ -540,10 +641,10 @@
             shiftDurationEl.textContent = getTranslation('waiting_for_punch');
             return;
           }
-          
+
           // 使用实际的当天打卡记录进行计时
           const firstActualPunch = new Date(actualTodayPunches[0]);
-          
+
           // 检查日期对象是否有效
           if (isNaN(firstActualPunch.getTime())) {
             clearInterval(shiftTimerInterval);
@@ -551,25 +652,25 @@
             shiftDurationEl.textContent = getTranslation('waiting_for_punch');
             return;
           }
-          
+
           // 设置班次开始时间
           shiftStartTime = firstActualPunch;
-          
+
           // 如果已经有计时器，则清除它
           if (shiftTimerInterval) {
             clearInterval(shiftTimerInterval);
           }
-          
+
           // 计算实际工作时间（剔除第二次到第三次间隔）
           let actualWorkDuration = 0;
           const now = new Date();
-          
+
           if (actualTodayPunches.length >= 4) {
             // 如果有4次打卡，计算总工作时间（第一次到第二次 + 第三次到第四次）
             const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
             const thirdToFourth = new Date(actualTodayPunches[3]).getTime() - new Date(actualTodayPunches[2]).getTime();
             actualWorkDuration = firstToSecond + thirdToFourth;
-            
+
             // 如果当前时间超过第四次打卡，则加上当前时间到第四次打卡的时间
             if (now.getTime() > new Date(actualTodayPunches[3]).getTime()) {
               actualWorkDuration += now.getTime() - new Date(actualTodayPunches[3]).getTime();
@@ -578,7 +679,7 @@
             // 如果有3次打卡，计算第一次到第二次的时间
             const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
             actualWorkDuration = firstToSecond;
-            
+
             // 如果当前时间超过第三次打卡，则加上当前时间到第三次打卡的时间
             if (now.getTime() > new Date(actualTodayPunches[2]).getTime()) {
               actualWorkDuration += now.getTime() - new Date(actualTodayPunches[2]).getTime();
@@ -587,7 +688,7 @@
             // 如果有2次打卡，计算第一次到第二次的时间
             const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
             actualWorkDuration = firstToSecond;
-            
+
             // 如果当前时间超过第二次打卡，则加上当前时间到第二次打卡的时间
             if (now.getTime() > new Date(actualTodayPunches[1]).getTime()) {
               actualWorkDuration += now.getTime() - new Date(actualTodayPunches[1]).getTime();
@@ -596,26 +697,26 @@
             // 如果只有1次打卡，计算从第一次打卡到当前的时间
             actualWorkDuration = now.getTime() - new Date(actualTodayPunches[0]).getTime();
           }
-          
+
           const durationHours = Math.floor(actualWorkDuration / (1000 * 60 * 60));
           const durationMinutes = Math.floor((actualWorkDuration % (1000 * 60 * 60)) / (1000 * 60));
           const durationSeconds = Math.floor((actualWorkDuration % (1000 * 60)) / 1000);
-          
+
           shiftDurationEl.textContent = `${translateWithParams('shift_duration', { h: durationHours, m: durationMinutes, s: durationSeconds })}`;
-          
+
           // 每秒更新班次时长
           shiftTimerInterval = setInterval(() => {
             const now = new Date();
-            
+
             // 重新计算实际工作时间
             let actualWorkDuration = 0;
-            
+
             if (actualTodayPunches.length >= 4) {
               // 如果有4次打卡，计算总工作时间（第一次到第二次 + 第三次到第四次）
               const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
               const thirdToFourth = new Date(actualTodayPunches[3]).getTime() - new Date(actualTodayPunches[2]).getTime();
               actualWorkDuration = firstToSecond + thirdToFourth;
-              
+
               // 如果当前时间超过第四次打卡，则加上当前时间到第四次打卡的时间
               if (now.getTime() > new Date(actualTodayPunches[3]).getTime()) {
                 actualWorkDuration += now.getTime() - new Date(actualTodayPunches[3]).getTime();
@@ -624,7 +725,7 @@
               // 如果有3次打卡，计算第一次到第二次的时间
               const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
               actualWorkDuration = firstToSecond;
-              
+
               // 如果当前时间超过第三次打卡，则加上当前时间到第三次打卡的时间
               if (now.getTime() > new Date(actualTodayPunches[2]).getTime()) {
                 actualWorkDuration += now.getTime() - new Date(actualTodayPunches[2]).getTime();
@@ -633,7 +734,7 @@
               // 如果有2次打卡，计算第一次到第二次的时间
               const firstToSecond = new Date(actualTodayPunches[1]).getTime() - new Date(actualTodayPunches[0]).getTime();
               actualWorkDuration = firstToSecond;
-              
+
               // 如果当前时间超过第二次打卡，则加上当前时间到第二次打卡的时间
               if (now.getTime() > new Date(actualTodayPunches[1]).getTime()) {
                 actualWorkDuration += now.getTime() - new Date(actualTodayPunches[1]).getTime();
@@ -642,15 +743,15 @@
               // 如果只有1次打卡，计算从第一次打卡到当前的时间
               actualWorkDuration = now.getTime() - new Date(actualTodayPunches[0]).getTime();
             }
-            
+
             const durationHours = Math.floor(actualWorkDuration / (1000 * 60 * 60));
             const durationMinutes = Math.floor((actualWorkDuration % (1000 * 60 * 60)) / (1000 * 60));
             const durationSeconds = Math.floor((actualWorkDuration % (1000 * 60)) / 1000);
-            
+
             shiftDurationEl.textContent = `${translateWithParams('shift_duration', { h: durationHours, m: durationMinutes, s: durationSeconds })}`;
           }, 1000);
         }
-        
+
         checkAndCalculate();
       } else {
         // 没有打卡记录，清除计时器
@@ -667,19 +768,19 @@
         const missing = 4 - raw.length;
         return { error: translateWithParams('insufficient_punches', { n: missing }) };
       }
-      
+
       // 排序所有打卡时间
       const sorted = sortTimes(raw);
       const [t1, t2, t3, t4] = sorted;
       const d1 = new Date(t1), d2 = new Date(t2), d3 = new Date(t3), d4 = new Date(t4);
-      
+
       // 检查时间顺序
       if (d2 <= d1 || d4 <= d3) return { error: getTranslation('time_order_error') };
-      
+
       // 计算间隔时间
       const interval1 = d2 - d1;
       let interval2 = d4 - d3;
-      
+
       // 检查是否为末班打卡情况
       // 如果第四次打卡时间早于第三次打卡时间，说明可能是末班打卡（跨天）
       if (d4 < d3) {
@@ -688,7 +789,7 @@
         crossDayD4.setDate(crossDayD4.getDate() + 1);
         interval2 = crossDayD4 - d3;
       }
-      
+
       return {
         interval1,
         interval2,
@@ -699,20 +800,47 @@
 
     async function render(dateISO) {
       const currentUser = await getCurrentUser();
-      
+
       const data = await loadData();
-      
+
       // data的结构是 {日期: [打卡时间数组]}，直接使用dateISO作为键获取当天的打卡记录
-      const raw = data[dateISO] || [];
-      
+      let raw = data[dateISO] || [];
+
+      // 预处理数据：严格过滤掉所有凌晨5点前的打卡
+      // 根据业务规则，5点前的打卡属于前一天的末班，不应出现在当天的列表和计算中
+      if (raw.length > 0) {
+        raw = raw.filter(t => {
+          const dt = new Date(t);
+          const h = dt.getHours();
+
+          // 逻辑修正：只有当打卡时间在凌晨5点前，且该打卡记录的【日历日期】与【当前查看的日期】相同时，才隐藏。
+          // 原因：
+          // 1. 后端会将凌晨打卡(如1月2日 01:57)同时放入1月1日和1月2日的列表。
+          // 2. 当我们查看1月2日时，遇到1月2日 01:57 -> 属于1月1日的晚班 -> 隐藏。
+          // 3. 当我们查看1月1日时，遇到1月2日 01:57 -> 属于1月1日的晚班 -> 显示。
+          if (h < 5) {
+            const pYear = dt.getFullYear();
+            const pMonth = String(dt.getMonth() + 1).padStart(2, '0');
+            const pDay = String(dt.getDate()).padStart(2, '0');
+            const punchDateISO = `${pYear}-${pMonth}-${pDay}`;
+
+            // 如果打卡就在当前日历日，说明它是"今天凌晨"的，实际上属于"昨天"，应隐藏
+            if (punchDateISO === dateISO) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+
       const sorted = sortTimes(raw);
-      
+
       // 更新第二次到第三次打卡计时器
       updateSecondThirdTimer(sorted);
-      
+
       // 更新班次时长计时器
       updateShiftDuration(sorted, dateISO);
-      
+
       if (raw.length === 0) {
         punchListEl.textContent = getTranslation('no_records');
       } else {
@@ -720,12 +848,12 @@
           const punchNumber = translateWithParams('punch_number', { n: idx + 1 });
           // 显示真实的打卡时间
           const timeDisplay = new Date(t).toLocaleString();
-          
+
           // 检查是否为末班打卡（凌晨时段）
           const punchDateTime = new Date(t);
           const punchHour = punchDateTime.getHours();
           const isLateShift = punchHour < 6; // 凌晨0-6点视为末班打卡
-          
+
           // 检查是否为双记录显示的末班打卡
           let dualRecordIndicator = '';
           if (isLateShift) {
@@ -734,7 +862,7 @@
             punchDate.setDate(punchDate.getDate() - 1);
             const previousDateISO = punchDate.toISOString().split('T')[0];
             const previousRaw = data[previousDateISO] || [];
-            
+
             // 如果前一天也有相同的打卡记录，则标识为双记录
             if (previousRaw.includes(t)) {
               dualRecordIndicator = ` <span style="color: #ff6b6b;">[${getTranslation('dual_record')}]</span>`;
@@ -742,7 +870,7 @@
               dualRecordIndicator = ` <span style="color: #ff6b6b;">[${getTranslation('late_shift_punch')}]</span>`;
             }
           }
-          
+
           return `<tr>
             <td>${punchNumber}</td>
             <td>${timeDisplay}${dualRecordIndicator}</td>
@@ -761,13 +889,13 @@
             <tbody>${rows}</tbody>
           </table>
         `;
-        
+
         // 为删除按钮添加事件监听器
         document.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', async function() {
+          btn.addEventListener('click', async function () {
             const date = this.getAttribute('data-date');
             const timestamp = this.getAttribute('data-timestamp');
-            
+
             // 显示确认对话框
             if (confirm(getTranslation('confirm_delete'))) {
               try {
@@ -776,7 +904,7 @@
                 const response = await fetch(`/api/punch/${date}/${encodedTimestamp}`, {
                   method: 'DELETE'
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                   // 重新加载数据
@@ -820,7 +948,7 @@
       if (reminderSet) {
         return; // 如果已经设置过提醒，则不再重复设置
       }
-      
+
       // 设置提醒时间（4小时55分钟 = 17700000毫秒）
       setTimeout(() => {
         // 显示提醒模态框
@@ -847,7 +975,7 @@
           element.textContent = translation;
         }
       });
-      
+
       // 更新页面标题
       document.title = getTranslation('page_title');
     }
@@ -869,7 +997,7 @@
       const now = new Date();
       const [year, month, day] = dateISO.split('-').map(Number);
       now.setFullYear(year, month - 1, day);
-      
+
       const success = await addPunch(dateISO, now);
       if (success) {
         await render(dateISO);
@@ -909,12 +1037,12 @@
       const dateISO = manualDateInput.value || getSelectedDate();
       const timeStr = manualTimeInput.value;
       const isLateShift = lateShiftCheckbox.checked; // 检查是否为末班打卡
-      
+
       if (!timeStr) return setStatus(getTranslation('enter_manual_time'), true);
       const [h, m] = timeStr.split(':').map(Number);
       const [year, month, day] = dateISO.split('-').map(Number);
       const dt = new Date(year, month - 1, day, h, m, 0, 0);
-      
+
       const success = await addPunch(dateISO, dt, isLateShift);
       if (success) {
         await render(dateISO);
@@ -923,14 +1051,14 @@
         const list = data[dateISO] || [];
         const punchCount = list.length;
         setStatus(translateWithParams('punch_recorded', { n: punchCount }));
-        
+
         // 清除末班打卡复选框
         lateShiftCheckbox.checked = false;
       }
     });
 
     // 语言切换事件监听
-    languageSelector.addEventListener('change', function() {
+    languageSelector.addEventListener('change', function () {
       switchLanguage(this.value);
     });
 
@@ -944,7 +1072,7 @@
       const now = new Date();
       const [year, month, day] = dateISO.split('-').map(Number);
       now.setFullYear(year, month - 1, day);
-      
+
       const success = await addPunch(dateISO, now);
       if (success) {
         await render(dateISO);
@@ -957,7 +1085,7 @@
     };
 
     // 点击模态框外部关闭
-    window.onclick = function(event) {
+    window.onclick = function (event) {
       if (event.target == reminderModal) {
         closeReminderModal();
       }
@@ -970,18 +1098,19 @@
       manualDateInput.value = todayISO(); // 设置手动日期输入的默认值
       await render(getSelectedDate()); // 渲染初始数据
       setReminder(); // 设置提醒
-      
+
       // 初始化语言选择器
       languageSelector.value = getCurrentLanguage();
       translatePage();
     }
-    
+
     init();
-    
+
     // 响应窗口大小变化，重新调整布局
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
       // 可以在这里添加特定的响应式调整逻辑
     });
   </script>
 </body>
+
 </html>

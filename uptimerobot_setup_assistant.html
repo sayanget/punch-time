@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UptimeRobot 设置助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-size: 1.8em;
+            color: #333;
+        }
+
+        .step-content {
+            margin-left: 65px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .instruction {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .instruction h3 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .url-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 1.1em;
+            text-align: center;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+
+        .link-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .link-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .checklist {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .checklist li {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+
+        .checklist li:before {
+            content: '✓';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .completion {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .completion-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .config-box {
+            background: #fff;
+            border: 2px solid #28a745;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .config-value {
+            color: #28a745;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏰ UptimeRobot 设置助手</h1>
+            <p>5分钟解决Render休眠问题</p>
+            <div class="badge">✅ 完全免费 · 无需信用卡</div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: 注册 -->
+            <div class="step active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">注册 UptimeRobot</div>
+                </div>
+                <div class="step-content">
+                    <div class="alert alert-success">
+                        <strong>🎉 为什么选择 UptimeRobot?</strong><br>
+                        ✅ 完全免费,50个监控额度<br>
+                        ✅ 5分钟监控间隔<br>
+                        ✅ 无需信用卡<br>
+                        ✅ 设置仅需30秒
+                    </div>
+
+                    <div class="instruction">
+                        <h3>注册方式(选择其一):</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>使用 Google 账户</strong> (推荐) - 一键登录</li>
+                            <li><strong>使用 GitHub 账户</strong> - 一键登录</li>
+                            <li><strong>使用邮箱注册</strong> - 输入邮箱地址</li>
+                        </ol>
+                    </div>
+
+                    <a href="https://dashboard.uptimerobot.com/sign-up" target="_blank" class="link-button">
+                        🔗 打开 UptimeRobot 注册页面
+                    </a>
+
+                    <div class="alert alert-info" style="margin-top: 20px;">
+                        <strong>💡 提示:</strong> 注册页面已在浏览器中打开。完成注册后,点击下方"下一步"继续。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: 添加监控 -->
+            <div class="step" id="step2">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">添加监控</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>在 UptimeRobot 控制台:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>登录后,点击 <strong>"+ Add New Monitor"</strong> 按钮</li>
+                            <li>或者点击 <strong>"Dashboard"</strong> → <strong>"Add Monitor"</strong></li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>📝 注意:</strong> 首次登录可能会显示欢迎页面,点击"Skip"或"Get Started"即可进入控制台。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: 配置监控 -->
+            <div class="step" id="step3">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">配置监控参数</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>填写监控配置:</h3>
+                    </div>
+
+                    <div class="config-box">
+                        <div class="config-item">
+                            <span class="config-label">Monitor Type (监控类型)</span>
+                            <span class="config-value">HTTP(s)</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Friendly Name (名称)</span>
+                            <span class="config-value">Punch Timer App</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">URL (or IP)</span>
+                            <span class="config-value">https://punch-time.onrender.com</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Monitoring Interval (监控间隔)</span>
+                            <span class="config-value">Every 5 minutes</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ 重要:</strong>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>URL 必须填写: <code
+                                    style="background: #fff; padding: 2px 6px; border-radius: 3px;">https://punch-time.onrender.com</code>
+                            </li>
+                            <li>监控间隔选择 <strong>5 minutes</strong> (免费套餐默认)</li>
+                        </ul>
+                    </div>
+
+                    <div class="instruction">
+                        <h3>其他设置保持默认:</h3>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Alert Contacts: 可选,建议添加邮箱接收通知</li>
+                            <li>其他高级选项: 保持默认即可</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✓ 配置完成后:</strong> 点击 <strong>"Create Monitor"</strong> 按钮
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: 验证监控 -->
+            <div class="step" id="step4">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">验证监控状态</div>
+                </div>
+                <div class="step-content">
+                    <div class="instruction">
+                        <h3>检查监控是否正常:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>在控制台中,你应该看到刚创建的监控</li>
+                            <li>状态应该显示为 <strong>"Up"</strong> (绿色)</li>
+                            <li>如果显示 "Checking...",等待几秒钟</li>
+                            <li>查看 "Uptime" 百分比(应该是 100%)</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>📊 监控信息:</strong><br>
+                        UptimeRobot 会每5分钟访问一次你的应用,确保它保持活跃状态,不会进入休眠。
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✅ 成功标志:</strong>
+                        <ul class="checklist" style="margin-top: 10px;">
+                            <li>监控状态显示 "Up" (绿色)</li>
+                            <li>可以看到最后检查时间</li>
+                            <li>响应时间正常(通常 &lt; 2秒)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: 测试效果 -->
+            <div class="step" id="step5">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">测试效果</div>
+                </div>
+                <div class="step-content">
+                    <div class="completion">
+                        <div class="completion-icon">🎉</div>
+                        <h2 style="color: #28a745; margin-bottom: 15px;">设置完成!</h2>
+                        <p style="color: #666; margin: 15px 0;">你的应用现在会保持活跃,不再休眠!</p>
+                    </div>
+
+                    <div class="instruction">
+                        <h3>验证效果:</h3>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>关闭浏览器,等待 30 分钟</li>
+                            <li>重新访问: <a href="https://punch-time.onrender.com"
+                                    target="_blank">https://punch-time.onrender.com</a></li>
+                            <li>应该<strong>立即加载</strong>,没有15秒延迟!</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>🚀 工作原理:</strong><br>
+                        UptimeRobot 每5分钟自动访问你的应用,Render 检测到活动后不会让应用休眠。这样用户访问时就不会有冷启动延迟!
+                    </div>
+
+                    <div class="instruction">
+                        <h3>额外功能(可选):</h3>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>📧 <strong>邮件通知</strong>: 应用宕机时接收邮件</li>
+                            <li>📱 <strong>手机通知</strong>: 下载UptimeRobot移动应用</li>
+                            <li>📊 <strong>公开状态页</strong>: 创建公开的服务状态页面</li>
+                            <li>📈 <strong>统计报告</strong>: 查看应用运行时间统计</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💰 费用说明:</strong><br>
+                        免费套餐包含50个监控,5分钟间隔,完全够用!如果需要更短的间隔(1分钟),可以升级到付费套餐(约$7/月)。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="buttons">
+                <button class="btn-secondary" id="prevBtn" onclick="changeStep(-1)" disabled>上一步</button>
+                <button class="btn-primary" id="nextBtn" onclick="changeStep(1)">下一步</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+
+            // Show current step
+            document.getElementById('step' + step).classList.add('active');
+
+            // Update buttons
+            document.getElementById('prevBtn').disabled = step === 1;
+
+            const nextBtn = document.getElementById('nextBtn');
+            if (step === totalSteps) {
+                nextBtn.textContent = '完成';
+                nextBtn.onclick = function () {
+                    alert('🎉 恭喜!UptimeRobot 设置完成!\n\n你的应用现在会保持活跃,不再有15秒延迟!\n\n建议:\n1. 等待30分钟后测试效果\n2. 在UptimeRobot中添加邮件通知\n3. 享受快速的应用响应!');
+                };
+            } else {
+                nextBtn.textContent = '下一步';
+                nextBtn.onclick = function () { changeStep(1); };
+            }
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changeStep(direction) {
+            const newStep = currentStep + direction;
+            if (newStep >= 1 && newStep <= totalSteps) {
+                currentStep = newStep;
+                showStep(currentStep);
+            }
+        }
+
+        // Initialize
+        showStep(1);
+    </script>
+</body>
+
+</html>

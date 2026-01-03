@@ -16,11 +16,11 @@ def create_user(username, password_hash):
     db = get_db()
     try:
         result = db.execute(
-            text("INSERT INTO users (username, password_hash) VALUES (:username, :password_hash) RETURNING id"),
+            text("INSERT INTO users (username, password_hash) VALUES (:username, :password_hash)"),
             {"username": username, "password_hash": password_hash}
         )
         db.commit()
-        user_id = result.fetchone()[0]
+        user_id = result.lastrowid
         db.close()
         logger.info(f"创建用户成功: {username}")
         return user_id
@@ -82,12 +82,11 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
             logger.warning(f"打卡记录已存在: user_id={user_id}, punch_date={punch_date}, punch_time={punch_time}")
             return None
         
-        # 插入新记录
+        # 插入新记录 - 使用兼容SQLite和PostgreSQL的方式
         result = db.execute(
             text("""
                 INSERT INTO punches (user_id, punch_date, punch_time, is_late_shift) 
                 VALUES (:user_id, :punch_date, :punch_time, :is_late_shift)
-                RETURNING id
             """),
             {
                 "user_id": user_id,
@@ -97,7 +96,8 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
             }
         )
         db.commit()
-        punch_id = result.fetchone()[0]
+        # 使用lastrowid获取插入的ID(兼容SQLite和PostgreSQL)
+        punch_id = result.lastrowid
         db.close()
         logger.info(f"添加打卡记录成功: user_id={user_id}, punch_time={punch_time}")
         return punch_id
