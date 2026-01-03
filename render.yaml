@@ -2,8 +2,8 @@ services:
   - type: web
     name: punch-timer
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -c "from waitress import serve; from app import app, init_data_files; init_data_files(); serve(app, host='0.0.0.0', port=$PORT)"
+    buildCommand: pip install -r requirements.txt && python migrate_database.py || true
+    startCommand: python -c "from waitress import serve; from app import app; from db_config import init_database; init_database(); serve(app, host='0.0.0.0', port=$PORT)"
     envVars:
       - key: SECRET_KEY
         generateValue: true
