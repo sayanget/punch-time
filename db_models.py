@@ -70,15 +70,16 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
     """添加打卡记录"""
     db = get_db()
     try:
-        # 检查是否已存在相同的打卡记录
+        # 检查是否已存在相同的打卡记录(同一用户、同一日期、同一时间)
+        # 注意: 允许相同的punch_time在不同的punch_date存在(用于末班打卡)
         existing = db.execute(
-            text("SELECT id FROM punches WHERE user_id = :user_id AND punch_time = :punch_time"),
-            {"user_id": user_id, "punch_time": punch_time}
+            text("SELECT id FROM punches WHERE user_id = :user_id AND punch_date = :punch_date AND punch_time = :punch_time"),
+            {"user_id": user_id, "punch_date": punch_date, "punch_time": punch_time}
         ).fetchone()
         
         if existing:
             db.close()
-            logger.warning(f"打卡记录已存在: user_id={user_id}, punch_time={punch_time}")
+            logger.warning(f"打卡记录已存在: user_id={user_id}, punch_date={punch_date}, punch_time={punch_time}")
             return None
         
         # 插入新记录
