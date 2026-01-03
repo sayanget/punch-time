@@ -126,6 +126,54 @@ def init_database():
             except Exception as sqlite_error:
                 logger.error(f"SQLite初始化失败: {sqlite_error}")
                 raise
+    
+    # 修复唯一约束问题(PostgreSQL)
+    if not DATABASE_URL.startswith('sqlite'):
+        try:
+            logger.info("检查并修复数据库唯一约束...")
+            with engine.connect() as conn:
+                # 检查是否存在旧的约束
+                result = conn.execute(text("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conrelid = 'punches'::regclass 
+                    AND contype = 'u'
+                    AND conname = 'punches_user_id_punch_time_key'
+                """))
+                old_constraint = result.fetchone()
+                
+                if old_constraint:
+                    logger.info("发现旧约束,正在删除...")
+                    # 删除旧约束
+                    conn.execute(text("ALTER TABLE punches DROP CONSTRAINT IF EXISTS punches_user_id_punch_time_key"))
+                    conn.commit()
+                    logger.info("✓ 已删除旧约束: punches_user_id_punch_time_key")
+                
+                # 检查是否存在新约束
+                result = conn.execute(text("""
+                    SELECT conname 
+                    FROM pg_constraint 
+                    WHERE conrelid = 'punches'::regclass 
+                    AND contype = 'u'
+                    AND conname = 'punches_user_id_punch_date_punch_time_key'
+                """))
+                new_constraint = result.fetchone()
+                
+                if not new_constraint:
+                    logger.info("添加新约束...")
+                    # 添加新约束
+                    conn.execute(text("""
+                        ALTER TABLE punches 
+                        ADD CONSTRAINT punches_user_id_punch_date_punch_time_key 
+                        UNIQUE (user_id, punch_date, punch_time)
+                    """))
+                    conn.commit()
+                    logger.info("✓ 已添加新约束: punches_user_id_punch_date_punch_time_key")
+                else:
+                    logger.info("✓ 新约束已存在,无需修复")
+                    
+        except Exception as e:
+            logger.warning(f"约束修复失败(可能已经修复): {e}")
 
 def close_db(db=None):
     """关闭数据库连接"""
