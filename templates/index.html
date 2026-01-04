@@ -761,16 +761,33 @@
       }
     }
 
-    // 根据原始打卡数据计算报告（支持末班打卡）
-    function computeReportFromRaw(raw) {
+    // 根据原始打卡数据计算报告（支持末班打卡,排除双记录）
+    async function computeReportFromRaw(raw, dateISO) {
       if (!raw || raw.length === 0) return { error: getTranslation('no_record_today') };
-      if (raw.length < 4) {
-        const missing = 4 - raw.length;
+
+      // 检查并排除双记录(来自前一天的末班打卡)
+      const data = await loadData();
+      const currentDate = new Date(dateISO);
+      const previousDate = new Date(currentDate);
+      previousDate.setDate(previousDate.getDate() - 1);
+      const previousDateISO = previousDate.toISOString().split('T')[0];
+      const previousPunches = data[previousDateISO] || [];
+
+      // 过滤掉双记录
+      const actualTodayPunches = raw.filter(time => {
+        const isDualRecord = previousPunches.includes(time);
+        return !isDualRecord; // 只保留非双记录的打卡
+      });
+
+      // 使用过滤后的实际打卡记录进行计算
+      if (actualTodayPunches.length === 0) return { error: getTranslation('no_record_today') };
+      if (actualTodayPunches.length < 4) {
+        const missing = 4 - actualTodayPunches.length;
         return { error: translateWithParams('insufficient_punches', { n: missing }) };
       }
 
       // 排序所有打卡时间
-      const sorted = sortTimes(raw);
+      const sorted = sortTimes(actualTodayPunches);
       const [t1, t2, t3, t4] = sorted;
       const d1 = new Date(t1), d2 = new Date(t2), d3 = new Date(t3), d4 = new Date(t4);
 
@@ -927,7 +944,7 @@
         });
       }
 
-      const report = computeReportFromRaw(raw);
+      const report = await computeReportFromRaw(raw, dateISO);
       if (report.error) {
         reportEl.textContent = report.error;
       } else {
