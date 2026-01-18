@@ -116,16 +116,33 @@ def get_user_punches(user_id):
     """获取用户的所有打卡记录,按日期分组（包含地理位置信息）"""
     db = get_db()
     try:
-        result = db.execute(
-            text("""
-                SELECT punch_date, punch_time, is_late_shift, latitude, longitude, location_name
-                FROM punches 
-                WHERE user_id = :user_id 
-                ORDER BY punch_time
-            """),
-            {"user_id": user_id}
-        )
-        punches = result.fetchall()
+        # 先尝试查询包含位置信息的完整数据
+        try:
+            result = db.execute(
+                text("""
+                    SELECT punch_date, punch_time, is_late_shift, latitude, longitude, location_name
+                    FROM punches 
+                    WHERE user_id = :user_id 
+                    ORDER BY punch_time
+                """),
+                {"user_id": user_id}
+            )
+            punches = result.fetchall()
+            has_location_fields = True
+        except Exception as e:
+            # 如果查询失败（可能是因为字段不存在），使用旧查询
+            logger.warning(f"查询位置字段失败，使用旧格式: {e}")
+            result = db.execute(
+                text("""
+                    SELECT punch_date, punch_time, is_late_shift
+                    FROM punches 
+                    WHERE user_id = :user_id 
+                    ORDER BY punch_time
+                """),
+                {"user_id": user_id}
+            )
+            punches = result.fetchall()
+            has_location_fields = False
         
         # 按日期分组
         punches_by_date = {}
@@ -136,13 +153,22 @@ def get_user_punches(user_id):
             if date_str not in punches_by_date:
                 punches_by_date[date_str] = []
             
-            # 构建打卡记录对象（包含位置信息）
-            punch_record = {
-                'time': time_str,
-                'latitude': punch[3],
-                'longitude': punch[4],
-                'location_name': punch[5]
-            }
+            # 构建打卡记录对象（包含位置信息，如果有的话）
+            if has_location_fields:
+                punch_record = {
+                    'time': time_str,
+                    'latitude': punch[3],
+                    'longitude': punch[4],
+                    'location_name': punch[5]
+                }
+            else:
+                # 向后兼容：旧数据没有位置信息
+                punch_record = {
+                    'time': time_str,
+                    'latitude': None,
+                    'longitude': None,
+                    'location_name': None
+                }
             punches_by_date[date_str].append(punch_record)
         
         db.close()
