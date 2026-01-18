@@ -67,8 +67,8 @@ def get_all_users():
 
 # ==================== 打卡记录操作 ====================
 
-def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
-    """添加打卡记录"""
+def add_punch(user_id, punch_date, punch_time, is_late_shift=False, latitude=None, longitude=None, location_name=None):
+    """添加打卡记录（支持地理位置）"""
     db = get_db()
     try:
         # 检查是否已存在相同的打卡记录(同一用户、同一日期、同一时间)
@@ -86,15 +86,18 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
         # 插入新记录 - 使用RETURNING获取ID,兼容PostgreSQL和SQLite
         result = db.execute(
             text("""
-                INSERT INTO punches (user_id, punch_date, punch_time, is_late_shift) 
-                VALUES (:user_id, :punch_date, :punch_time, :is_late_shift)
+                INSERT INTO punches (user_id, punch_date, punch_time, is_late_shift, latitude, longitude, location_name) 
+                VALUES (:user_id, :punch_date, :punch_time, :is_late_shift, :latitude, :longitude, :location_name)
                 RETURNING id
             """),
             {
                 "user_id": user_id,
                 "punch_date": punch_date,
                 "punch_time": punch_time,
-                "is_late_shift": is_late_shift
+                "is_late_shift": is_late_shift,
+                "latitude": latitude,
+                "longitude": longitude,
+                "location_name": location_name
             }
         )
         db.flush()  # flush确保语句执行完成
@@ -110,12 +113,12 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False):
         raise
 
 def get_user_punches(user_id):
-    """获取用户的所有打卡记录,按日期分组"""
+    """获取用户的所有打卡记录,按日期分组（包含地理位置信息）"""
     db = get_db()
     try:
         result = db.execute(
             text("""
-                SELECT punch_date, punch_time, is_late_shift 
+                SELECT punch_date, punch_time, is_late_shift, latitude, longitude, location_name
                 FROM punches 
                 WHERE user_id = :user_id 
                 ORDER BY punch_time
@@ -132,7 +135,15 @@ def get_user_punches(user_id):
             
             if date_str not in punches_by_date:
                 punches_by_date[date_str] = []
-            punches_by_date[date_str].append(time_str)
+            
+            # 构建打卡记录对象（包含位置信息）
+            punch_record = {
+                'time': time_str,
+                'latitude': punch[3],
+                'longitude': punch[4],
+                'location_name': punch[5]
+            }
+            punches_by_date[date_str].append(punch_record)
         
         db.close()
         return punches_by_date

@@ -489,12 +489,207 @@
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
-    // 添加打卡记录
+    // 获取当前地理位置
+    async function getCurrentLocation() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          console.log('浏览器不支持地理位置');
+          resolve(null);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.warn('获取位置失败:', error.message);
+            resolve(null); // 失败时返回null，不阻止打卡
+          },
+        );
+      });
+    }
+
+    // 使用Google Maps进行反向地理编码
+    async function reverseGeocodeGoogle(latitude, longitude, apiKey) {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?` +
+          `latlng=${latitude},${longitude}&` +
+          `key=${apiKey}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Google Maps API请求失败');
+        }
+
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results.length > 0) {
+          const result = data.results[0];
+
+          // 提取地址组件
+          const components = {};
+          result.address_components.forEach(component => {
+            component.types.forEach(type => {
+              components[type] = component.short_name;
+            });
+          });
+
+          // 构建美国地址格式: 街道地址, 城市, 州 邮编
+          const parts = [];
+
+          // 街道地址 (街道号 + 街道名)
+          if (components.street_number && components.route) {
+            parts.push(`${components.street_number} ${components.route}`);
+          } else if (components.route) {
+            parts.push(components.route);
+          }
+
+          // 城市
+          if (components.locality) {
+            parts.push(components.locality);
+          }
+
+          // 州
+          if (components.administrative_area_level_1) {
+            parts.push(components.administrative_area_level_1);
+          }
+
+          // 邮编
+          if (components.postal_code) {
+            parts.push(components.postal_code);
+          }
+
+          if (parts.length > 0) {
+            return parts.join(', ');
+          }
+        }
+
+        return null;
+      } catch (error) {
+        console.warn('Google Maps地理编码失败:', error);
+        return null;
+      }
+    }
+
+    // 使用Nominatim进行反向地理编码（备选方案）
+    async function reverseGeocodeNominatim(latitude, longitude) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?` +
+          `lat=${latitude}&lon=${longitude}&format=json&` +
+          `accept-language=en`,
+          {
+            headers: {
+              'User-Agent': 'PunchTimer/1.0'
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Nominatim API请求失败');
+        }
+
+        const data = await response.json();
+
+        // 优先使用更详细的地址信息
+        if (data.address) {
+          const addr = data.address;
+          const parts = [];
+
+          // 街道地址
+          if (addr.house_number && addr.road) {
+            parts.push(`${addr.house_number} ${addr.road}`);
+          } else if (addr.road) {
+            parts.push(addr.road);
+          }
+
+          // 城市
+          if (addr.city || addr.town || addr.village) {
+            parts.push(addr.city || addr.town || addr.village);
+          }
+
+          // 州
+          if (addr.state) {
+            parts.push(addr.state);
+          }
+
+          // 邮编
+          if (addr.postcode) {
+            parts.push(addr.postcode);
+          }
+
+          if (parts.length > 0) {
+            return parts.join(', ');
+          }
+        }
+
+        // 备选：使用display_name
+        return data.display_name || null;
+      } catch (error) {
+        console.warn('Nominatim地理编码失败:', error);
+        return null;
+      }
+    }
+
+    // 反向地理编码：将坐标转换为地址（带降级机制）
+    async function reverseGeocode(latitude, longitude) {
+      // 获取API配置
+      let googleMapsApiKey = '';
+      try {
+        const configResponse = await fetch('/api/config');
+        if (configResponse.ok) {
+          const config = await configResponse.json();
+          googleMapsApiKey = config.googleMapsApiKey || '';
+        }
+      } catch (error) {
+        console.warn('获取API配置失败:', error);
+      }
+
+      // 优先使用Google Maps（如果有API密钥）
+      if (googleMapsApiKey) {
+        const googleResult = await reverseGeocodeGoogle(latitude, longitude, googleMapsApiKey);
+        if (googleResult) {
+          console.log('使用Google Maps地理编码:', googleResult);
+          return googleResult;
+        }
+      }
+
+      // 降级到Nominatim
+      const nominatimResult = await reverseGeocodeNominatim(latitude, longitude);
+      if (nominatimResult) {
+        console.log('使用Nominatim地理编码:', nominatimResult);
+        return nominatimResult;
+      }
+
+      // 最终降级：显示坐标
+      console.log('地理编码失败，显示坐标');
+      return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+    }
+
+    // 添加打卡记录（支持地理位置）
     async function addPunch(dateISO, dt, isLateShift = false) {
       try {
         // 自动检测是否为末班打卡（时间在早上6点前）
         const hour = dt.getHours();
         const autoLateShift = hour < 6;
+
+        // 获取地理位置（不阻塞打卡）
+        let locationData = {};
+        const location = await getCurrentLocation();
+
+        if (location) {
+          locationData.latitude = location.latitude;
+          locationData.longitude = location.longitude;
+
+          // 进行反向地理编码
+          const locationName = await reverseGeocode(location.latitude, location.longitude);
+          locationData.locationName = locationName;
+        }
 
         const response = await fetch('/api/punch', {
           method: 'POST',
@@ -504,7 +699,8 @@
           body: JSON.stringify({
             date: dateISO,
             time: dt.toTimeString().split(' ')[0],
-            lateShift: isLateShift || autoLateShift  // 手动标记或自动检测
+            lateShift: isLateShift || autoLateShift,  // 手动标记或自动检测
+            ...locationData  // 包含位置数据（如果有）
           })
         });
 
@@ -616,7 +812,8 @@
 
           // 检查前一天是否存在相同的打卡时间（表示这是一个双记录）
           const previousPunches = data[previousDateISO] || [];
-          const isFirstPunchDualRecord = previousPunches.includes(firstPunchTime);
+          const previousTimes = previousPunches.map(r => typeof r === 'string' ? r : r.time);
+          const isFirstPunchDualRecord = previousTimes.includes(firstPunchTime);
 
           // 如果当天第一个记录是双记录，则不参与计时
           if (isFirstPunchDualRecord && sortedTimes.length === 1) {
@@ -630,7 +827,7 @@
           // 找到当天实际的打卡记录（排除来自前一天的双记录）
           const actualTodayPunches = sortedTimes.filter(time => {
             // 检查该时间是否也存在于前一天的记录中
-            const isDualRecord = previousPunches.includes(time);
+            const isDualRecord = previousTimes.includes(time);
             return !isDualRecord; // 只保留非双记录的打卡
           });
 
@@ -765,6 +962,9 @@
     async function computeReportFromRaw(raw, dateISO) {
       if (!raw || raw.length === 0) return { error: getTranslation('no_record_today') };
 
+      // 提取时间字符串（兼容旧格式和新格式）
+      const rawTimes = raw.map(r => typeof r === 'string' ? r : r.time);
+
       // 检查并排除双记录(来自前一天的末班打卡)
       const data = await loadData();
       const currentDate = new Date(dateISO);
@@ -772,10 +972,11 @@
       previousDate.setDate(previousDate.getDate() - 1);
       const previousDateISO = previousDate.toISOString().split('T')[0];
       const previousPunches = data[previousDateISO] || [];
+      const previousTimes = previousPunches.map(r => typeof r === 'string' ? r : r.time);
 
       // 过滤掉双记录
-      const actualTodayPunches = raw.filter(time => {
-        const isDualRecord = previousPunches.includes(time);
+      const actualTodayPunches = rawTimes.filter(time => {
+        const isDualRecord = previousTimes.includes(time);
         return !isDualRecord; // 只保留非双记录的打卡
       });
 
@@ -820,42 +1021,13 @@
 
       const data = await loadData();
 
-      // data的结构是 {日期: [打卡时间数组]}，直接使用dateISO作为键获取当天的打卡记录
+      // data的结构是 {日期: [打卡记录对象数组]}
+      // 每个打卡记录对象包含: {time, latitude, longitude, location_name}
       let raw = data[dateISO] || [];
 
-      // 注释掉过滤逻辑 - 后端已经正确按punch_date分组了数据
-      // 凌晨的末班打卡会被后端同时添加到当天和前一天
-      // 前端不需要再次过滤,否则会导致前一天的末班打卡不显示
-      /*
-      // 预处理数据：严格过滤掉所有凌晨5点前的打卡
-      // 根据业务规则，5点前的打卡属于前一天的末班，不应出现在当天的列表和计算中
-      if (raw.length > 0) {
-        raw = raw.filter(t => {
-          const dt = new Date(t);
-          const h = dt.getHours();
-
-          // 逻辑修正：只有当打卡时间在凌晨5点前，且该打卡记录的【日历日期】与【当前查看的日期】相同时，才隐藏。
-          // 原因：
-          // 1. 后端会将凌晨打卡(如1月2日 01:57)同时放入1月1日和1月2日的列表。
-          // 2. 当我们查看1月2日时，遇到1月2日 01:57 -> 属于1月1日的晚班 -> 隐藏。
-          // 3. 当我们查看1月1日时，遇到1月2日 01:57 -> 属于1月1日的晚班 -> 显示。
-          if (h < 5) {
-            const pYear = dt.getFullYear();
-            const pMonth = String(dt.getMonth() + 1).padStart(2, '0');
-            const pDay = String(dt.getDate()).padStart(2, '0');
-            const punchDateISO = `${pYear}-${pMonth}-${pDay}`;
-
-            // 如果打卡就在当前日历日，说明它是"今天凌晨"的，实际上属于"昨天"，应隐藏
-            if (punchDateISO === dateISO) {
-              return false;
-            }
-          }
-          return true;
-        });
-      }
-      */
-
-      const sorted = sortTimes(raw);
+      // 提取时间字符串用于排序和计时器
+      const times = raw.map(record => typeof record === 'string' ? record : record.time);
+      const sorted = sortTimes(times);
 
       // 更新第二次到第三次打卡计时器
       updateSecondThirdTimer(sorted);
@@ -868,6 +1040,11 @@
       } else {
         const rows = sorted.map((t, idx) => {
           const punchNumber = translateWithParams('punch_number', { n: idx + 1 });
+
+          // 查找对应的打卡记录对象
+          const punchRecord = raw.find(r => (typeof r === 'string' ? r : r.time) === t);
+          const locationName = punchRecord && typeof punchRecord === 'object' ? punchRecord.location_name : null;
+
           // 显示真实的打卡时间
           const timeDisplay = new Date(t).toLocaleString();
 
@@ -884,18 +1061,25 @@
             punchDate.setDate(punchDate.getDate() - 1);
             const previousDateISO = punchDate.toISOString().split('T')[0];
             const previousRaw = data[previousDateISO] || [];
+            const previousTimes = previousRaw.map(r => typeof r === 'string' ? r : r.time);
 
             // 如果前一天也有相同的打卡记录，则标识为双记录
-            if (previousRaw.includes(t)) {
+            if (previousTimes.includes(t)) {
               dualRecordIndicator = ` <span style="color: #ff6b6b;">[${getTranslation('dual_record')}]</span>`;
             } else {
               dualRecordIndicator = ` <span style="color: #ff6b6b;">[${getTranslation('late_shift_punch')}]</span>`;
             }
           }
 
+          // 构建位置显示
+          let locationDisplay = '';
+          if (locationName) {
+            locationDisplay = `<br><span style="color: #6b7280; font-size: 0.9em; margin-left: 5px;">📍 ${locationName}</span>`;
+          }
+
           return `<tr>
             <td>${punchNumber}</td>
-            <td>${timeDisplay}${dualRecordIndicator}</td>
+            <td>${timeDisplay}${dualRecordIndicator}${locationDisplay}</td>
             <td><button class="delete-btn" data-date="${dateISO}" data-timestamp="${t}">${getTranslation('delete')}</button></td>
           </tr>`;
         }).join('');

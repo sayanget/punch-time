@@ -87,6 +87,15 @@ def logout():
 def current_user():
     return jsonify({'username': session['user_id']})
 
+# 获取API配置（用于前端）
+@app.route('/api/config')
+@login_required
+def get_config():
+    return jsonify({
+        'googleMapsApiKey': os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    })
+
+
 # 获取当前用户的打卡数据
 @app.route('/api/punches')
 @login_required
@@ -98,7 +107,7 @@ def get_punches():
         return jsonify(user_punches)
     return jsonify({})
 
-# 添加打卡记录（支持末班打卡双记录显示）
+# 添加打卡记录（支持末班打卡双记录显示和地理位置）
 @app.route('/api/punch', methods=['POST'])
 @login_required
 def add_punch_route():
@@ -106,6 +115,11 @@ def add_punch_route():
     date = data['date']
     time = data['time']
     is_late_shift_manual = data.get('lateShift', False)  # 是否为末班打卡（手动标记）
+    
+    # 获取地理位置数据（可选）
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    location_name = data.get('locationName')
     
     username = session['user_id']
     user_id = get_user_id_by_username(username)
@@ -126,8 +140,8 @@ def add_punch_route():
     is_late_shift = is_late_shift_manual or is_late_shift_auto
     
     try:
-        # 添加到当前日期
-        punch_id = add_punch(user_id, date, punch_time, is_late_shift)
+        # 添加到当前日期（包含地理位置信息）
+        punch_id = add_punch(user_id, date, punch_time, is_late_shift, latitude, longitude, location_name)
         
         if punch_id is None:
             return jsonify({'success': False, 'message': '该时间已打卡'})
@@ -138,8 +152,8 @@ def add_punch_route():
             previous_date = current_date - timedelta(days=1)
             previous_date_str = previous_date.strftime('%Y-%m-%d')
             
-            # 添加到前一天的记录中
-            add_punch(user_id, previous_date_str, punch_time, is_late_shift)
+            # 添加到前一天的记录中（同样包含地理位置信息）
+            add_punch(user_id, previous_date_str, punch_time, is_late_shift, latitude, longitude, location_name)
         
         # 统计当天打卡次数
         count = count_punches_by_date(user_id, date)
@@ -293,5 +307,30 @@ def export_punches():
 def index_html():
     return render_template('index.html')
 
-if __name__ == '__main__':    
-    app.run(debug=True, host='0.0.0.0', port=7777)
+if __name__ == '__main__':
+    # 检查是否启用SSL
+    ssl_enabled = os.environ.get('SSL_ENABLED', 'False').lower() == 'true'
+    
+    if ssl_enabled:
+        # 使用HTTPS
+        ssl_cert = os.environ.get('SSL_CERT_PATH', 'ssl/cert.pem')
+        ssl_key = os.environ.get('SSL_KEY_PATH', 'ssl/key.pem')
+        port = int(os.environ.get('HTTPS_PORT', '7778'))
+        
+        # 检查证书文件是否存在
+        if not os.path.exists(ssl_cert) or not os.path.exists(ssl_key):
+            print(f"错误: SSL证书文件不存在!")
+            print(f"  证书: {ssl_cert}")
+            print(f"  私钥: {ssl_key}")
+            print(f"\n请先运行: python generate_ssl_cert.py")
+            exit(1)
+        
+        print(f"启动HTTPS服务器...")
+        print(f"访问地址: https://localhost:{port}")
+        app.run(debug=True, host='0.0.0.0', port=port, ssl_context=(ssl_cert, ssl_key))
+    else:
+        # 使用HTTP
+        port = int(os.environ.get('PORT', '7777'))
+        print(f"启动HTTP服务器...")
+        print(f"访问地址: http://localhost:{port}")
+        app.run(debug=True, host='0.0.0.0', port=port)
