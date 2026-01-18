@@ -115,9 +115,13 @@ def add_punch(user_id, punch_date, punch_time, is_late_shift=False, latitude=Non
 def get_user_punches(user_id):
     """获取用户的所有打卡记录,按日期分组（包含地理位置信息）"""
     db = get_db()
+    has_location_fields = False
+    punches = []
+    
     try:
-        # 先尝试查询包含位置信息的完整数据
+        # 首先检查表结构，确定是否有位置字段
         try:
+            # 尝试查询包含位置信息的完整数据
             result = db.execute(
                 text("""
                     SELECT punch_date, punch_time, is_late_shift, latitude, longitude, location_name
@@ -129,9 +133,22 @@ def get_user_punches(user_id):
             )
             punches = result.fetchall()
             has_location_fields = True
+            logger.info(f"使用新格式查询（包含位置字段），获取到 {len(punches)} 条记录")
         except Exception as e:
-            # 如果查询失败（可能是因为字段不存在），使用旧查询
-            logger.warning(f"查询位置字段失败，使用旧格式: {e}")
+            # 如果查询失败（可能是因为字段不存在），回滚并使用旧查询
+            logger.warning(f"查询位置字段失败: {str(e)[:100]}")
+            logger.info("尝试使用旧格式查询（不包含位置字段）")
+            
+            # 关闭当前连接并重新获取
+            try:
+                db.rollback()
+            except:
+                pass
+            
+            db.close()
+            db = get_db()
+            
+            # 使用旧查询格式
             result = db.execute(
                 text("""
                     SELECT punch_date, punch_time, is_late_shift
@@ -143,39 +160,51 @@ def get_user_punches(user_id):
             )
             punches = result.fetchall()
             has_location_fields = False
+            logger.info(f"使用旧格式查询成功，获取到 {len(punches)} 条记录")
         
         # 按日期分组
         punches_by_date = {}
         for punch in punches:
-            date_str = punch[0].strftime('%Y-%m-%d') if hasattr(punch[0], 'strftime') else str(punch[0])
-            time_str = punch[1].isoformat() if hasattr(punch[1], 'isoformat') else str(punch[1])
-            
-            if date_str not in punches_by_date:
-                punches_by_date[date_str] = []
-            
-            # 构建打卡记录对象（包含位置信息，如果有的话）
-            if has_location_fields:
-                punch_record = {
-                    'time': time_str,
-                    'latitude': punch[3],
-                    'longitude': punch[4],
-                    'location_name': punch[5]
-                }
-            else:
-                # 向后兼容：旧数据没有位置信息
-                punch_record = {
-                    'time': time_str,
-                    'latitude': None,
-                    'longitude': None,
-                    'location_name': None
-                }
-            punches_by_date[date_str].append(punch_record)
+            try:
+                date_str = punch[0].strftime('%Y-%m-%d') if hasattr(punch[0], 'strftime') else str(punch[0])
+                time_str = punch[1].isoformat() if hasattr(punch[1], 'isoformat') else str(punch[1])
+                
+                if date_str not in punches_by_date:
+                    punches_by_date[date_str] = []
+                
+                # 构建打卡记录对象（包含位置信息，如果有的话）
+                if has_location_fields:
+                    punch_record = {
+                        'time': time_str,
+                        'latitude': punch[3] if len(punch) > 3 else None,
+                        'longitude': punch[4] if len(punch) > 4 else None,
+                        'location_name': punch[5] if len(punch) > 5 else None
+                    }
+                else:
+                    # 向后兼容：旧数据没有位置信息
+                    punch_record = {
+                        'time': time_str,
+                        'latitude': None,
+                        'longitude': None,
+                        'location_name': None
+                    }
+                punches_by_date[date_str].append(punch_record)
+            except Exception as e:
+                logger.error(f"处理打卡记录时出错: {e}, 记录: {punch}")
+                continue
         
         db.close()
+        logger.info(f"成功返回 {len(punches_by_date)} 个日期的打卡记录")
         return punches_by_date
+        
     except Exception as e:
-        db.close()
         logger.error(f"查询打卡记录失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        try:
+            db.close()
+        except:
+            pass
         return {}
 
 def get_punches_by_date(user_id, punch_date):
