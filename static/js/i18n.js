@@ -5,23 +5,23 @@ const translations = {
     'page_title': '打卡计时器',
     'page_title_login': '用户登录 - 打卡计时器',
     'page_title_register': '用户注册 - 打卡计时器',
-    
+
     // 登录页
     'login_title': '用户登录',
     'username_label': '用户名',
     'password_label': '密码',
     'login_button': '登录',
     'register_link': '没有账户？立即注册',
-    
+
     // 注册页
     'register_title': '用户注册',
     'register_button': '注册',
     'login_link': '已有账户？立即登录',
-    
+
     // 导航和用户信息
     'user_label': '用户:',
     'logout_link': '退出',
-    
+
     // 主页面内容
     'main_title': '打卡计时器（每日4次）',
     'date_label': '日期',
@@ -30,13 +30,15 @@ const translations = {
     'manual_time_label': '或手动时间',
     'punch_manual_btn': '按手动时间记录',
     'export_btn': '导出Excel (CSV)',
-    
+
     // 卡片标题
+    'punch_controls_title': '打卡操作',
+    'settings_title': '设置与导出',
     'today_punches_title': '当日打卡记录',
     'daily_duration_title': '每日打卡时长',
     'second_to_third_timer_title': '第二次到第三次打卡计时',
     'shift_duration_title': '当前班次时长',
-    
+
     // 状态消息
     'no_records': '暂无记录',
     'calculate_after_4_punches': '需满4次打卡后计算',
@@ -49,18 +51,18 @@ const translations = {
     'second_third_interval': '第二次到第三次间隔: {h}小时{m}分钟',
     'shift_duration': '班次时长: {h}小时{m}分钟{s}秒',
     'waiting_for_punch': '等待打卡开始计时',
-    
+
     // 时间单位
     'hours': '小时',
     'minutes': '分钟',
     'seconds': '秒',
-    
+
     // 提醒模态框
     'reminder_title': '⏰ 打卡提醒',
     'reminder_message': '您已打开应用超过4小时55分钟，记得及时打卡哦！',
     'punch_now_reminder_btn': '立即打卡',
     'later_reminder_btn': '稍后提醒',
-    
+
     // 打卡报告
     'punch_number': '第{n}次',
     'interval': '间隔',
@@ -68,22 +70,22 @@ const translations = {
     'time': '时间',
     'actions': '操作',
     'delete': '删除',
-    
+
     // 对话框和确认消息
     'confirm_delete': '确定要删除这条打卡记录吗？',
     'delete_failed': '删除失败',
-    
+
     // 错误消息
     'no_record_today': '该日期暂无打卡记录',
     'insufficient_punches': '记录不足4次，缺少 {n} 次',
     'time_order_error': '时间顺序异常，请检查打卡',
     'punch_full': '当日已满4次打卡',
-    
+
     // 成功消息
     'punch_recorded': '已记录第 {n} 次打卡',
     'export_success': '已导出 CSV，可用 Excel 打开',
     'delete_success': '删除成功',
-    
+
     // 导出表头
     'export_date': '日期',
     'export_count': '记录数',
@@ -95,40 +97,58 @@ const translations = {
     'export_interval2': '间隔(3-4)',
     'export_total': '总时长',
     'export_status': '状态',
-    
+
     // 其他
     'date_switched': '已切换日期',
     'export_failed': '导出失败',
     'enter_manual_time': '请输入手动时间',
-    
+
     // 末班打卡
     'late_shift_checkbox': '末班打卡',
     'late_shift_punch': '末班打卡',
     'dual_record': '双记录',
+
+    // 时薪和工资汇总
+    'hourly_rate': '时薪 (元/小时)',
+    'set_hourly_rate': '设置时薪',
+    'salary_summary': '工资汇总',
+    'start_date': '开始日期',
+    'end_date': '结束日期',
+    'calculate': '计算工资',
+    'current_hourly_rate': '当前时薪',
+    'total_days': '总工作天数',
+    'total_hours': '总工作时长',
+    'total_salary': '总工资',
+    'daily_salary': '每日工资',
+    'salary_result_title': '工资汇总结果',
+    'time_period': '时间段',
+    'daily_details': '每日明细',
+    'work_hours': '工时',
+    'salary': '工资',
   },
-  
+
   'en': {
     // Page titles
     'page_title': 'Punch Timer',
     'page_title_login': 'User Login - Punch Timer',
     'page_title_register': 'User Registration - Punch Timer',
-    
+
     // Login page
     'login_title': 'User Login',
     'username_label': 'Username',
     'password_label': 'Password',
     'login_button': 'Login',
     'register_link': 'No account? Register now',
-    
+
     // Register page
     'register_title': 'User Registration',
     'register_button': 'Register',
     'login_link': 'Already have an account? Login now',
-    
+
     // Navigation and user info
     'user_label': 'User:',
     'logout_link': 'Logout',
-    
+
     // Main page content
     'main_title': 'Punch Timer (4 Times Daily)',
     'date_label': 'Date',
@@ -137,13 +157,15 @@ const translations = {
     'manual_time_label': 'Or Manual Time',
     'punch_manual_btn': 'Punch In by Manual Time',
     'export_btn': 'Export to Excel (CSV)',
-    
+
     // Card titles
+    'punch_controls_title': 'Punch Operations',
+    'settings_title': 'Settings & Export',
     'today_punches_title': 'Today\'s Punch Records',
     'daily_duration_title': 'Daily Punch Duration',
     'second_to_third_timer_title': 'Second to Third Punch Timer',
     'shift_duration_title': 'Current Shift Duration',
-    
+
     // Status messages
     'no_records': 'No records',
     'calculate_after_4_punches': 'Calculation available after 4 punches',
@@ -156,18 +178,18 @@ const translations = {
     'second_third_interval': 'Second to third interval: {h}h {m}m',
     'shift_duration': 'Shift duration: {h}h {m}m {s}s',
     'waiting_for_punch': 'Waiting for punch to start timing',
-    
+
     // Time units
     'hours': ' hours',
     'minutes': ' minutes',
     'seconds': ' seconds',
-    
+
     // Reminder modal
     'reminder_title': '⏰ Punch Reminder',
     'reminder_message': 'You have been using the app for over 4 hours and 55 minutes. Remember to punch in!',
     'punch_now_reminder_btn': 'Punch In Now',
     'later_reminder_btn': 'Remind Me Later',
-    
+
     // Punch report
     'punch_number': 'Punch #{n}',
     'interval': 'Interval',
@@ -175,22 +197,22 @@ const translations = {
     'time': 'Time',
     'actions': 'Actions',
     'delete': 'Delete',
-    
+
     // Dialogs and confirmation messages
     'confirm_delete': 'Are you sure you want to delete this punch record?',
     'delete_failed': 'Failed to delete',
-    
+
     // Error messages
     'no_record_today': 'No punch records for this date',
     'insufficient_punches': 'Insufficient punches, missing {n} punches',
     'time_order_error': 'Time order error, please check your punches',
     'punch_full': 'Already reached 4 punches for today',
-    
+
     // Success messages
     'punch_recorded': 'Punch #{n} recorded',
     'export_success': 'CSV exported, can be opened in Excel',
     'delete_success': 'Successfully deleted',
-    
+
     // Export headers
     'export_date': 'Date',
     'export_count': 'Count',
@@ -202,40 +224,58 @@ const translations = {
     'export_interval2': 'Interval (3-4)',
     'export_total': 'Total',
     'export_status': 'Status',
-    
+
     // Others
     'date_switched': 'Date switched',
     'export_failed': 'Export failed',
     'enter_manual_time': 'Please enter manual time',
-    
+
     // Late shift punch
     'late_shift_checkbox': 'Late Shift',
     'late_shift_punch': 'Late Shift Punch',
     'dual_record': 'Dual Record',
+
+    // Hourly rate and salary summary
+    'hourly_rate': 'Hourly Rate ($/hour)',
+    'set_hourly_rate': 'Set Hourly Rate',
+    'salary_summary': 'Salary Summary',
+    'start_date': 'Start Date',
+    'end_date': 'End Date',
+    'calculate': 'Calculate Salary',
+    'current_hourly_rate': 'Current Hourly Rate',
+    'total_days': 'Total Working Days',
+    'total_hours': 'Total Working Hours',
+    'total_salary': 'Total Salary',
+    'daily_salary': 'Daily Salary',
+    'salary_result_title': 'Salary Summary Result',
+    'time_period': 'Time Period',
+    'daily_details': 'Daily Details',
+    'work_hours': 'Work Hours',
+    'salary': 'Salary',
   },
-  
+
   'es': {
     // Títulos de página
     'page_title': 'Temporizador de Registro',
     'page_title_login': 'Inicio de Sesión - Temporizador de Registro',
     'page_title_register': 'Registro de Usuario - Temporizador de Registro',
-    
+
     // Página de inicio de sesión
     'login_title': 'Inicio de Sesión',
     'username_label': 'Nombre de Usuario',
     'password_label': 'Contraseña',
     'login_button': 'Iniciar Sesión',
     'register_link': '¿No tienes cuenta? Regístrate ahora',
-    
+
     // Página de registro
     'register_title': 'Registro de Usuario',
     'register_button': 'Registrarse',
     'login_link': '¿Ya tienes una cuenta? Inicia sesión ahora',
-    
+
     // Navegación e información de usuario
     'user_label': 'Usuario:',
     'logout_link': 'Cerrar Sesión',
-    
+
     // Contenido principal
     'main_title': 'Temporizador de Registro (4 Veces al Día)',
     'date_label': 'Fecha',
@@ -244,13 +284,15 @@ const translations = {
     'manual_time_label': 'O Hora Manual',
     'punch_manual_btn': 'Registrar por Hora Manual',
     'export_btn': 'Exportar a Excel (CSV)',
-    
+
     // Títulos de tarjetas
+    'punch_controls_title': 'Operaciones de Registro',
+    'settings_title': 'Configuración y Exportación',
     'today_punches_title': 'Registros de Hoy',
     'daily_duration_title': 'Duración Diaria de Registros',
     'second_to_third_timer_title': 'Temporizador de Segundo a Tercer Registro',
     'shift_duration_title': 'Duración del Turno Actual',
-    
+
     // Mensajes de estado
     'no_records': 'Sin registros',
     'calculate_after_4_punches': 'Cálculo disponible después de 4 registros',
@@ -263,18 +305,18 @@ const translations = {
     'second_third_interval': 'Intervalo de segundo a tercero: {h}h {m}m',
     'shift_duration': 'Duración del turno: {h}h {m}m {s}s',
     'waiting_for_punch': 'Esperando registro para iniciar el temporizador',
-    
+
     // Unidades de tiempo
     'hours': ' horas',
     'minutes': ' minutos',
     'seconds': ' segundos',
-    
+
     // Modal de recordatorio
     'reminder_title': '⏰ Recordatorio de Registro',
     'reminder_message': 'Ha estado usando la aplicación por más de 4 horas y 55 minutos. ¡Recuerde registrar su tiempo!',
     'punch_now_reminder_btn': 'Registrar Ahora',
     'later_reminder_btn': 'Recordarme Más Tarde',
-    
+
     // Reporte de registros
     'punch_number': 'Registro #{n}',
     'interval': 'Intervalo',
@@ -282,22 +324,22 @@ const translations = {
     'time': 'Hora',
     'actions': 'Acciones',
     'delete': 'Eliminar',
-    
+
     // Diálogos y mensajes de confirmación
     'confirm_delete': '¿Está seguro de que desea eliminar este registro?',
     'delete_failed': 'Error al eliminar',
-    
+
     // Mensajes de error
     'no_record_today': 'No hay registros para esta fecha',
     'insufficient_punches': 'Registros insuficientes, faltan {n} registros',
     'time_order_error': 'Error en el orden de tiempo, por favor revise sus registros',
     'punch_full': 'Ya se alcanzaron los 4 registros para hoy',
-    
+
     // Mensajes de éxito
     'punch_recorded': 'Registro #{n} guardado',
     'export_success': 'CSV exportado, puede abrirse en Excel',
     'delete_success': 'Eliminado correctamente',
-    
+
     // Encabezados de exportación
     'export_date': 'Fecha',
     'export_count': 'Cantidad',
@@ -309,16 +351,34 @@ const translations = {
     'export_interval2': 'Intervalo (3-4)',
     'export_total': 'Total',
     'export_status': 'Estado',
-    
+
     // Otros
     'date_switched': 'Fecha cambiada',
     'export_failed': 'Error al exportar',
     'enter_manual_time': 'Por favor ingrese la hora manual',
-    
+
     // Registro de turno nocturno
     'late_shift_checkbox': 'Turno Nocturno',
     'late_shift_punch': 'Registro de Turno Nocturno',
     'dual_record': 'Registro Doble',
+
+    // Tarifa por hora y resumen de salario
+    'hourly_rate': 'Tarifa por Hora ($/hora)',
+    'set_hourly_rate': 'Establecer Tarifa por Hora',
+    'salary_summary': 'Resumen de Salario',
+    'start_date': 'Fecha de Inicio',
+    'end_date': 'Fecha de Fin',
+    'calculate': 'Calcular Salario',
+    'current_hourly_rate': 'Tarifa por Hora Actual',
+    'total_days': 'Total de Días Trabajados',
+    'total_hours': 'Total de Horas Trabajadas',
+    'total_salary': 'Salario Total',
+    'daily_salary': 'Salario Diario',
+    'salary_result_title': 'Resultado del Resumen de Salario',
+    'time_period': 'Período de Tiempo',
+    'daily_details': 'Detalles Diarios',
+    'work_hours': 'Horas de Trabajo',
+    'salary': 'Salario',
   }
 };
 
@@ -342,7 +402,7 @@ function getCurrentLanguage() {
   if (savedLang && translations[savedLang]) {
     return savedLang;
   }
-  
+
   // 否则根据浏览器语言设置判断
   const browserLang = navigator.language || navigator.userLanguage;
   if (browserLang.startsWith('en')) {
@@ -369,11 +429,11 @@ function setCurrentLanguage(lang) {
 // 翻译带有参数的文本
 function translateWithParams(key, params, lang = getCurrentLanguage()) {
   let translation = getTranslation(key, lang);
-  
+
   // 替换参数 {n} -> 实际值
   for (const param in params) {
     translation = translation.replace(`{${param}}`, params[param]);
   }
-  
+
   return translation;
 }

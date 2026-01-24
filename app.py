@@ -9,7 +9,8 @@ from functools import wraps
 from db_config import init_database, close_db
 from db_models import (
     create_user, get_user_by_username, user_exists, get_user_id_by_username,
-    add_punch, get_user_punches, get_punches_by_date, delete_punch, count_punches_by_date
+    add_punch, get_user_punches, get_punches_by_date, delete_punch, count_punches_by_date,
+    get_user_hourly_rate, set_user_hourly_rate
 )
 
 app = Flask(__name__, template_folder='templates', static_folder='.', static_url_path='')
@@ -206,6 +207,132 @@ def delete_punch_route(date, timestamp):
             return jsonify({'success': False, 'message': '未找到该打卡记录'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
+
+# 时薪管理API
+@app.route('/api/hourly-rate', methods=['GET', 'POST'])
+@login_required
+def hourly_rate():
+    """获取或设置用户时薪"""
+    username = session['user_id']
+    user_id = get_user_id_by_username(username)
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': '用户不存在'}), 404
+    
+    if request.method == 'GET':
+        # 获取时薪
+        try:
+            rate = get_user_hourly_rate(user_id)
+            return jsonify({'success': True, 'hourly_rate': rate})
+        except Exception as e:
+            logger.error(f"获取时薪失败: {e}")
+            return jsonify({'success': False, 'message': f'获取时薪失败: {str(e)}'}), 500
+    
+    elif request.method == 'POST':
+        # 设置时薪
+        try:
+            data = request.get_json()
+            rate = float(data.get('hourly_rate', 0))
+            
+            if rate < 0:
+                return jsonify({'success': False, 'message': '时薪不能为负数'}), 400
+            
+            set_user_hourly_rate(user_id, rate)
+            return jsonify({'success': True, 'message': '时薪设置成功', 'hourly_rate': rate})
+        except ValueError:
+            return jsonify({'success': False, 'message': '时薪格式不正确'}), 400
+        except Exception as e:
+            logger.error(f"设置时薪失败: {e}")
+            return jsonify({'success': False, 'message': f'设置时薪失败: {str(e)}'}), 500
+
+# 工资汇总API
+@app.route('/api/salary-summary', methods=['POST'])
+@login_required
+def salary_summary():
+    """计算指定时间段的工资汇总"""
+    try:
+        username = session['user_id']
+        user_id = get_user_id_by_username(username)
+        
+        if not user_id:
+            return jsonify({'success': False, 'message': '用户不存在'}), 404
+        
+        data = request.get_json()
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        if not start_date or not end_date:
+            return jsonify({'success': False, 'message': '请提供开始日期和结束日期'}), 400
+        
+        # 获取时薪
+        hourly_rate = get_user_hourly_rate(user_id)
+        
+        # 获取所有打卡记录
+        all_punches = get_user_punches(user_id)
+        
+        # 过滤指定时间段的记录
+        total_hours = 0.0
+        total_days = 0
+        daily_details = []
+        
+        for date_str, records in sorted(all_punches.items()):
+            if start_date <= date_str <= end_date:
+                # 提取时间
+                times = []
+                for record in records:
+                    if isinstance(record, dict):
+                        time_str = record.get('time')
+                        if time_str:
+                            times.append(time_str)
+                    elif isinstance(record, str):
+                        times.append(record)
+                
+                # 计算当日工作时长
+                if len(times) >= 4:
+                    try:
+                        from datetime import datetime
+                        t1 = datetime.fromisoformat(times[0])
+                        t2 = datetime.fromisoformat(times[1])
+                        t3 = datetime.fromisoformat(times[2])
+                        t4 = datetime.fromisoformat(times[3])
+                        
+                        morning_hours = (t2 - t1).total_seconds() / 3600
+                        afternoon_hours = (t4 - t3).total_seconds() / 3600
+                        day_hours = morning_hours + afternoon_hours
+                        day_salary = day_hours * hourly_rate
+                        
+                        total_hours += day_hours
+                        total_days += 1
+                        
+                        daily_details.append({
+                            'date': date_str,
+                            'hours': round(day_hours, 2),
+                            'salary': round(day_salary, 2)
+                        })
+                    except Exception as e:
+                        logger.warning(f"计算日期 {date_str} 工时失败: {e}")
+                        continue
+        
+        total_salary = total_hours * hourly_rate
+        
+        return jsonify({
+            'success': True,
+            'summary': {
+                'start_date': start_date,
+                'end_date': end_date,
+                'total_days': total_days,
+                'total_hours': round(total_hours, 2),
+                'hourly_rate': hourly_rate,
+                'total_salary': round(total_salary, 2),
+                'daily_details': daily_details
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"工资汇总失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'message': f'工资汇总失败: {str(e)}'}), 500
 
 # 导出个人打卡数据
 @app.route('/api/export')

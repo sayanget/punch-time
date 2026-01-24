@@ -5,402 +5,163 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title data-i18n="page_title">打卡计时器</title>
-  <style>
-    :root {
-      color-scheme: light;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      margin: 24px;
-      background: #f6f7fb;
-    }
-
-    h1 {
-      margin-bottom: 8px;
-    }
-
-    .card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    button {
-      cursor: pointer;
-      padding: 8px 14px;
-      border: 1px solid #2563eb;
-      background: #2563eb;
-      color: #fff;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-
-    button.secondary {
-      background: #f3f4f6;
-      color: #374151;
-      border-color: #d1d5db;
-    }
-
-    input[type="date"],
-    input[type="time"] {
-      padding: 6px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      width: 140px;
-      max-width: 100%;
-    }
-
-    #manual-date,
-    #manual-time {
-      width: 120px;
-    }
-
-    #late-shift {
-      width: auto;
-    }
-
-    #late-shift+span {
-      margin-left: 5px;
-    }
-
-    label {
-      font-weight: 600;
-    }
-
-    input[type="date"],
-    input[type="time"] {
-      padding: 6px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      width: 200px;
-      max-width: 100%;
-    }
-
-    button {
-      cursor: pointer;
-      padding: 8px 14px;
-      border: 1px solid #2563eb;
-      background: #2563eb;
-      color: #fff;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-
-    button.secondary {
-      background: #fff;
-      color: #2563eb;
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .status {
-      margin-top: 8px;
-      color: #111827;
-      font-weight: 600;
-    }
-
-    .error {
-      color: #dc2626;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-    }
-
-    th,
-    td {
-      border: 1px solid #e5e7eb;
-      padding: 8px;
-      text-align: left;
-    }
-
-    th {
-      background: #f3f4f6;
-    }
-
-    .muted {
-      color: #6b7280;
-    }
-
-    @media (max-width: 640px) {
-      body {
-        margin: 12px;
-      }
-
-      .row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      button,
-      input[type="date"],
-      input[type="time"] {
-        width: 100%;
-      }
-    }
-
-    /* 添加用户信息显示样式 */
-    .user-info {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 12px 16px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .user-info span {
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .user-info a {
-      color: #2563eb;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .user-info a:hover {
-      text-decoration: underline;
-    }
-
-    /* 语言选择下拉菜单 */
-    .language-selector {
-      padding: 5px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      background: white;
-      font-size: 14px;
-      min-width: 100px;
-    }
-
-    /* 提醒模态框样式 */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    .modal-content {
-      background-color: #fff;
-      margin: 15% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 500px;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .close:hover {
-      color: #000;
-    }
-
-    .reminder-btn {
-      background-color: #10b981;
-      border-color: #10b981;
-      margin: 10px;
-    }
-
-    .reminder-btn:hover {
-      background-color: #059669;
-      border-color: #059669;
-    }
-
-    /* 移动端适配优化 */
-    @media (max-width: 768px) {
-      .user-info {
-        position: relative;
-        top: 0;
-        right: 0;
-        margin-bottom: 20px;
-        justify-content: space-between;
-      }
-
-      .user-info span:first-child {
-        flex-grow: 1;
-      }
-
-      .language-selector {
-        min-width: 100px;
-      }
-
-      h1 {
-        font-size: 1.5em;
-        text-align: center;
-      }
-
-      .card {
-        padding: 12px;
-      }
-
-      .row {
-        gap: 8px;
-      }
-
-      button {
-        padding: 10px;
-        font-size: 14px;
-      }
-
-      input[type="date"],
-      input[type="time"] {
-        padding: 8px;
-        font-size: 14px;
-      }
-
-      table {
-        font-size: 14px;
-      }
-
-      th,
-      td {
-        padding: 6px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      body {
-        margin: 8px;
-      }
-
-      .user-info {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-      }
-
-      .user-info>div {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .language-selector {
-        width: auto;
-      }
-
-      h1 {
-        font-size: 1.3em;
-      }
-
-      .modal-content {
-        width: 95%;
-        padding: 15px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/static/css/modern.css">
 </head>
 
 <body>
-  <div class="user-info">
-    <div>
-      <span data-i18n="user_label">用户:</span>
-      <span id="username">-</span>
-    </div>
-    <select id="languageSelector" class="language-selector">
-      <option value="zh-CN">中文</option>
-      <option value="en">English</option>
-      <option value="es">Español</option>
-    </select>
-    <a href="/logout" data-i18n="logout_link">退出</a>
-  </div>
-
-  <h1 data-i18n="main_title">打卡计时器（每日4次）</h1>
-
-  <div class="card">
-    <div class="row">
-      <label for="date" data-i18n="date_label">日期</label>
-      <input id="date" type="date" />
-      <button id="load" data-i18n="switch_date_btn">切换日期</button>
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="main_title">打卡计时器（每日4次）</h1>
+      <div class="header-right">
+        <div class="user-info">
+          <span data-i18n="user_label">用户:</span>
+          <strong><span id="username">-</span></strong>
+        </div>
+        <select id="languageSelector" class="language-selector">
+          <option value="zh-CN">🇨🇳 中文</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Español</option>
+        </select>
+        <a href="/logout" data-i18n="logout_link" style="color: var(--danger-color); font-weight: 600;">退出</a>
+      </div>
     </div>
 
-    <div class="row">
-      <button id="punch-now" data-i18n="punch_now_btn">记录打卡（当前时间）</button>
-      <label for="manual-time" class="muted" data-i18n="manual_time_label">或手动时间</label>
-      <input id="manual-time" type="time" step="60" />
-      <label for="manual-date" class="muted" data-i18n="date_label">日期</label>
-      <input id="manual-date" type="date" />
-      <label>
-        <input type="checkbox" id="late-shift" />
-        <span data-i18n="late_shift_checkbox">末班打卡</span>
-      </label>
-      <button id="punch-manual" class="secondary" data-i18n="punch_manual_btn">按手动时间记录</button>
-    </div>
-    <div class="row">
-      <button id="export" data-i18n="export_btn">导出Excel (CSV)</button>
-    </div>
-    <div id="status" class="status"></div>
-  </div>
+    <div class="grid">
 
-  <div class="card">
-    <h3 data-i18n="today_punches_title">当日打卡记录</h3>
-    <div id="punch-list" class="muted" data-i18n="no_records">暂无记录</div>
-    <!-- 班次时长计时器 -->
-    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
-      <h4 data-i18n="shift_duration_title">当前班次时长</h4>
-      <div id="shift-duration" class="muted" data-i18n="waiting_for_punch">等待打卡开始计时</div>
+      <!-- Card 1: Punch Controls -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">📍</span>
+          <h3 data-i18n="punch_controls_title">打卡操作</h3>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="date" data-i18n="date_label">日期</label>
+            <div style="display: flex; gap: 8px;">
+              <input id="date" type="date" />
+              <button id="load" class="secondary" data-i18n="switch_date_btn">切换</button>
+            </div>
+          </div>
+          <div class="form-group" style="flex-grow: 1;">
+            <label>&nbsp;</label>
+            <button id="punch-now" class="primary" style="width: 100%;" data-i18n="punch_now_btn">记录打卡（当前时间）</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <h4 class="muted" style="font-size: 14px; margin-bottom: 12px; margin-top: 0;" data-i18n="manual_time_label">
+            或手动时间记录</h4>
+          <div class="form-row">
+            <input id="manual-date" type="date" title="手动日期" />
+            <input id="manual-time" type="time" step="60" title="手动时间" />
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="late-shift" />
+              <label for="late-shift" style="margin: 0; font-weight: normal; font-size: 14px;"
+                data-i18n="late_shift_checkbox">末班打卡</label>
+            </div>
+            <button id="punch-manual" class="secondary" data-i18n="punch_manual_btn">手动打卡</button>
+          </div>
+        </div>
+
+        <div id="status" class="status"></div>
+      </div>
+
+      <!-- Card 4: Today's Punches -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">📝</span>
+          <h3 data-i18n="today_punches_title">当日打卡记录</h3>
+        </div>
+        <div id="punch-list" class="muted" data-i18n="no_records">暂无记录</div>
+        <!-- Shift Timer -->
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+          <h4 data-i18n="shift_duration_title" class="muted" style="margin-bottom: 8px; margin-top: 0;">当前班次时长</h4>
+          <div id="shift-duration" class="result-value" style="font-size: 1.2em;" data-i18n="waiting_for_punch">等待打卡开始计时
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 5: Statistics -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">📈</span>
+          <h3 data-i18n="daily_duration_title">每日打卡时长</h3>
+        </div>
+        <div id="report" class="muted" data-i18n="calculate_after_4_punches">需满4次打卡后计算</div>
+      </div>
+
+      <!-- Card 6: 2nd-3rd Timer -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">⏱️</span>
+          <h3 data-i18n="second_to_third_timer_title">第二次到第三次打卡计时</h3>
+        </div>
+        <div id="second-third-timer" class="muted" data-i18n="waiting_for_second_punch">等待第二次打卡</div>
+      </div>
+
+      <!-- Card 2: Settings & Export -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">⚙️</span>
+          <h3 data-i18n="settings_title">设置</h3>
+        </div>
+
+        <div class="form-group">
+          <label for="hourly-rate-input">
+            <span data-i18n="hourly_rate">时薪 (元/小时)</span>
+          </label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input id="hourly-rate-input" type="number" min="0" step="0.01" placeholder="0.00" style="width: 120px;" />
+            <button id="set-hourly-rate" class="secondary" data-i18n="set_hourly_rate">保存</button>
+            <span id="current-hourly-rate" class="muted" style="margin-left: 10px;"></span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button id="export" class="secondary" style="width: 100%;" data-i18n="export_btn">📥 导出Excel (CSV)</button>
+        </div>
+      </div>
+
+      <!-- Card 3: Salary Summary -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">💰</span>
+          <h3 data-i18n="salary_summary">工资汇总</h3>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="salary-start-date" data-i18n="start_date">开始日期</label>
+            <input id="salary-start-date" type="date" />
+          </div>
+          <div class="form-group">
+            <label for="salary-end-date" data-i18n="end_date">结束日期</label>
+            <input id="salary-end-date" type="date" />
+          </div>
+          <div class="form-group" style="align-self: flex-end;">
+            <button id="calculate-salary" class="success" data-i18n="calculate">计算</button>
+          </div>
+        </div>
+
+        <div id="salary-result" class="result-box" style="display: none;">
+          <div id="salary-summary-content"></div>
+        </div>
+      </div>
+
+    </div> <!-- End Grid -->
+
+    <!-- 提醒模态框 -->
+    <div id="reminderModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 data-i18n="reminder_title">⏰ 打卡提醒</h2>
+        <p data-i18n="reminder_message">您已打开应用超过4小时55分钟，记得及时打卡哦！</p>
+        <button id="punchNowBtn" class="reminder-btn" data-i18n="punch_now_reminder_btn">立即打卡</button>
+        <button id="closeReminderBtn" data-i18n="later_reminder_btn">稍后提醒</button>
+      </div>
     </div>
-  </div>
-
-  <div class="card">
-    <h3 data-i18n="daily_duration_title">每日打卡时长</h3>
-    <div id="report" class="muted" data-i18n="calculate_after_4_punches">需满4次打卡后计算</div>
-  </div>
-
-  <!-- 第二次到第三次打卡计时器 -->
-  <div class="card">
-    <h3 data-i18n="second_to_third_timer_title">第二次到第三次打卡计时</h3>
-    <div id="second-third-timer" class="muted" data-i18n="waiting_for_second_punch">等待第二次打卡</div>
-  </div>
-
-  <!-- 提醒模态框 -->
-  <div id="reminderModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2 data-i18n="reminder_title">⏰ 打卡提醒</h2>
-      <p data-i18n="reminder_message">您已打开应用超过4小时55分钟，记得及时打卡哦！</p>
-      <button id="punchNowBtn" class="reminder-btn" data-i18n="punch_now_reminder_btn">立即打卡</button>
-      <button id="closeReminderBtn" data-i18n="later_reminder_btn">稍后提醒</button>
-    </div>
-  </div>
+  </div> <!-- End Container -->
 
   <script src="/static/js/i18n.js"></script>
   <script>
@@ -418,6 +179,16 @@
     const secondThirdTimerEl = document.getElementById('second-third-timer'); // 新增的计时器元素
     const usernameEl = document.getElementById('username');
     const languageSelector = document.getElementById('languageSelector');
+
+    // 时薪和工资汇总相关元素
+    const hourlyRateInput = document.getElementById('hourly-rate-input');
+    const setHourlyRateBtn = document.getElementById('set-hourly-rate');
+    const currentHourlyRateEl = document.getElementById('current-hourly-rate');
+    const salaryStartDateInput = document.getElementById('salary-start-date');
+    const salaryEndDateInput = document.getElementById('salary-end-date');
+    const calculateSalaryBtn = document.getElementById('calculate-salary');
+    const salaryResultEl = document.getElementById('salary-result');
+    const salarySummaryContentEl = document.getElementById('salary-summary-content');
 
     // 提醒相关元素
     const reminderModal = document.getElementById('reminderModal');
@@ -1238,6 +1009,117 @@
       }
     });
 
+    // 时薪设置事件处理
+    setHourlyRateBtn.addEventListener('click', async () => {
+      const rate = parseFloat(hourlyRateInput.value);
+      if (isNaN(rate) || rate < 0) {
+        setStatus('请输入有效的时薪', true);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/hourly-rate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hourly_rate: rate })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setStatus(`时薪设置成功: ¥${rate.toFixed(2)}/小时`);
+          currentHourlyRateEl.textContent = `当前时薪: ¥${rate.toFixed(2)}/小时`;
+        } else {
+          setStatus(data.message || '设置时薪失败', true);
+        }
+      } catch (error) {
+        console.error('设置时薪失败:', error);
+        setStatus('设置时薪失败', true);
+      }
+    });
+
+    // 工资汇总计算事件处理
+    calculateSalaryBtn.addEventListener('click', async () => {
+      const startDate = salaryStartDateInput.value;
+      const endDate = salaryEndDateInput.value;
+
+      if (!startDate || !endDate) {
+        setStatus('请选择开始日期和结束日期', true);
+        return;
+      }
+
+      if (startDate > endDate) {
+        setStatus('开始日期不能晚于结束日期', true);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/salary-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ start_date: startDate, end_date: endDate })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          const summary = data.summary;
+
+          // 显示汇总结果
+          let html = `
+            <h4>工资汇总结果</h4>
+            <p><strong>时间段:</strong> ${summary.start_date} 至 ${summary.end_date}</p>
+            <p><strong>总工作天数:</strong> ${summary.total_days} 天</p>
+            <p><strong>总工作时长:</strong> ${summary.total_hours.toFixed(2)} 小时</p>
+            <p><strong>当前时薪:</strong> ¥${summary.hourly_rate.toFixed(2)}/小时</p>
+            <p style="font-size: 1.2em; color: #2ecc71;"><strong>总工资:</strong> ¥${summary.total_salary.toFixed(2)}</p>
+          `;
+
+          // 显示每日明细
+          if (summary.daily_details && summary.daily_details.length > 0) {
+            html += '<h5 style="margin-top: 15px;">每日明细:</h5>';
+            html += '<div style="max-height: 200px; overflow-y: auto;">';
+            html += '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #e0e0e0;"><th style="padding: 5px; border: 1px solid #ccc;">日期</th><th style="padding: 5px; border: 1px solid #ccc;">工时</th><th style="padding: 5px; border: 1px solid #ccc;">工资</th></tr>';
+
+            summary.daily_details.forEach(day => {
+              html += `<tr>
+                <td style="padding: 5px; border: 1px solid #ccc;">${day.date}</td>
+                <td style="padding: 5px; border: 1px solid #ccc;">${day.hours.toFixed(2)} 小时</td>
+                <td style="padding: 5px; border: 1px solid #ccc;">¥${day.salary.toFixed(2)}</td>
+              </tr>`;
+            });
+
+            html += '</table></div>';
+          }
+
+          salarySummaryContentEl.innerHTML = html;
+          salaryResultEl.style.display = 'block';
+          setStatus('工资汇总计算成功');
+        } else {
+          setStatus(data.message || '工资汇总计算失败', true);
+          salaryResultEl.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('工资汇总计算失败:', error);
+        setStatus('工资汇总计算失败', true);
+        salaryResultEl.style.display = 'none';
+      }
+    });
+
+    // 加载当前时薪
+    async function loadCurrentHourlyRate() {
+      try {
+        const response = await fetch('/api/hourly-rate');
+        const data = await response.json();
+        if (data.success) {
+          const rate = data.hourly_rate;
+          hourlyRateInput.value = rate.toFixed(2);
+          currentHourlyRateEl.textContent = `当前时薪: ¥${rate.toFixed(2)}/小时`;
+        }
+      } catch (error) {
+        console.error('加载时薪失败:', error);
+      }
+    }
+
     punchManualBtn.addEventListener('click', async () => {
       // 使用手动选择的日期，如果没有选择则使用页面顶部选择的日期
       const dateISO = manualDateInput.value || getSelectedDate();
@@ -1304,6 +1186,7 @@
       manualDateInput.value = todayISO(); // 设置手动日期输入的默认值
       await render(getSelectedDate()); // 渲染初始数据
       setReminder(); // 设置提醒
+      await loadCurrentHourlyRate(); // 加载当前时薪
 
       // 初始化语言选择器
       languageSelector.value = getCurrentLanguage();

@@ -276,3 +276,41 @@ def get_user_id_by_username(username):
     if user:
         return user[0]  # id是第一个字段
     return None
+
+# ==================== 时薪操作 ====================
+
+def get_user_hourly_rate(user_id):
+    """获取用户时薪"""
+    db = get_db()
+    try:
+        result = db.execute(
+            text("SELECT hourly_rate FROM users WHERE id = :user_id"),
+            {"user_id": user_id}
+        )
+        row = result.fetchone()
+        db.close()
+        if row:
+            return float(row[0]) if row[0] is not None else 0.0
+        return 0.0
+    except Exception as e:
+        db.close()
+        logger.error(f"获取时薪失败: {e}")
+        return 0.0
+
+def set_user_hourly_rate(user_id, rate):
+    """设置用户时薪"""
+    db = get_db()
+    try:
+        db.execute(
+            text("UPDATE users SET hourly_rate = :rate WHERE id = :user_id"),
+            {"user_id": user_id, "rate": rate}
+        )
+        db.commit()
+        db.close()
+        logger.info(f"设置时薪成功: user_id={user_id}, rate={rate}")
+        return True
+    except Exception as e:
+        db.rollback()
+        db.close()
+        logger.error(f"设置时薪失败: {e}")
+        raise
