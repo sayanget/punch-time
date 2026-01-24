@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -16,6 +17,9 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret_key_here')  # 使用�
 
 # 初始化数据库
 init_database()
+
+# 初始化日志
+logger = logging.getLogger(__name__)
 
 
 # 登录验证装饰器
@@ -207,100 +211,155 @@ def delete_punch_route(date, timestamp):
 @app.route('/api/export')
 @login_required
 def export_punches():
-    username = session['user_id']
-    user_id = get_user_id_by_username(username)
-    
-    if not user_id:
-        return jsonify({'success': False, 'message': '用户不存在'})
-    
-    user_punches = get_user_punches(user_id)
-    
-    # 添加UTF-8 BOM以确保Excel正确显示中文
-    csv_data = "\ufeff"
-    
-    # CSV表头 - 添加工作时长列
-    csv_data += "日期,第1次,第2次,第3次,第4次,上午时长,下午时长,总时长\n"
-    
-    # 用于跟踪已处理的末班打卡记录,避免重复
-    processed_late_shifts = set()
-    
-    for date in sorted(user_punches.keys()):
-        times = user_punches[date]
+    """导出用户打卡数据为CSV文件"""
+    try:
+        logger.info("=== 开始导出流程 ===")
         
-        # 过滤掉重复的末班打卡记录
-        filtered_times = []
-        for t in times:
-            # 检查是否为末班打卡(凌晨5点前)
+        # 1. 获取用户信息
+        username = session.get('user_id')
+        logger.info(f"当前用户: {username}")
+        
+        if not username:
+            logger.error("Session中没有user_id")
+            return jsonify({'success': False, 'message': 'Session无效'}), 401
+        
+        user_id = get_user_id_by_username(username)
+        logger.info(f"用户ID: {user_id}")
+        
+        if not user_id:
+            logger.error(f"找不到用户: {username}")
+            return jsonify({'success': False, 'message': '用户不存在'}), 404
+        
+        # 2. 获取打卡数据
+        logger.info("获取打卡数据...")
+        user_punches = get_user_punches(user_id)
+        logger.info(f"获取到 {len(user_punches)} 天的打卡记录")
+        
+        # 3. 构建CSV
+        logger.info("构建CSV数据...")
+        csv_lines = []
+        
+        # UTF-8 BOM + 表头
+        csv_lines.append("\ufeff日期,第1次,第2次,第3次,第4次,上午时长,下午时长,总时长")
+        
+        # 处理每一天的数据
+        processed_late_shifts = set()
+        
+        for date in sorted(user_punches.keys()):
             try:
-                dt = datetime.fromisoformat(t)
-                if dt.hour < 5:
-                    # 如果这个时间戳已经在前一天处理过,跳过
-                    if t in processed_late_shifts:
+                logger.info(f"处理日期: {date}")
+                records = user_punches[date]
+                logger.info(f"  记录数: {len(records)}, 类型: {type(records)}")
+                
+                # 提取时间字符串
+                times = []
+                for i, record in enumerate(records):
+                    try:
+                        # 处理字典格式或字符串格式
+                        if isinstance(record, dict):
+                            time_str = record.get('time')
+                            if not time_str:
+                                logger.warning(f"  记录{i}的time为空: {record}")
+                                continue
+                        elif isinstance(record, str):
+                            time_str = record
+                        else:
+                            logger.warning(f"  记录{i}类型未知: {type(record)}")
+                            continue
+                        
+                        # 检查末班打卡（凌晨5点前）
+                        try:
+                            dt = datetime.fromisoformat(time_str)
+                            if dt.hour < 5:
+                                if time_str in processed_late_shifts:
+                                    logger.info(f"  跳过重复末班打卡: {time_str}")
+                                    continue
+                                processed_late_shifts.add(time_str)
+                        except Exception as e:
+                            logger.warning(f"  解析时间失败: {time_str}, {e}")
+                        
+                        times.append(time_str)
+                    except Exception as e:
+                        logger.error(f"  处理记录{i}时出错: {e}")
                         continue
-                    processed_late_shifts.add(t)
-            except:
-                pass
-            filtered_times.append(t)
-        
-        # 确保最多只取4个时间
-        formatted_times = filtered_times[:4] if len(filtered_times) >= 4 else filtered_times
-        
-        # 格式化时间为易读格式 (YYYY-MM-DD HH:MM:SS)
-        readable_times = []
-        for t in formatted_times:
-            try:
-                dt = datetime.fromisoformat(t)
-                readable_times.append(dt.strftime('%Y-%m-%d %H:%M:%S'))
-            except:
-                readable_times.append(t)
-        
-        # 计算工作时长
-        morning_duration = ""
-        afternoon_duration = ""
-        total_duration = ""
-        
-        if len(formatted_times) >= 4:
-            try:
-                t1 = datetime.fromisoformat(formatted_times[0])
-                t2 = datetime.fromisoformat(formatted_times[1])
-                t3 = datetime.fromisoformat(formatted_times[2])
-                t4 = datetime.fromisoformat(formatted_times[3])
                 
-                # 计算上午时长(第1次到第2次)
-                morning_ms = (t2 - t1).total_seconds()
-                morning_hours = int(morning_ms // 3600)
-                morning_minutes = int((morning_ms % 3600) // 60)
-                morning_duration = f"{morning_hours}小时{morning_minutes}分钟"
+                logger.info(f"  有效时间数: {len(times)}")
                 
-                # 计算下午时长(第3次到第4次)
-                afternoon_ms = (t4 - t3).total_seconds()
-                afternoon_hours = int(afternoon_ms // 3600)
-                afternoon_minutes = int((afternoon_ms % 3600) // 60)
-                afternoon_duration = f"{afternoon_hours}小时{afternoon_minutes}分钟"
+                # 最多取4个时间
+                times = times[:4]
                 
-                # 计算总时长
-                total_ms = morning_ms + afternoon_ms
-                total_hours = int(total_ms // 3600)
-                total_minutes = int((total_ms % 3600) // 60)
-                total_duration = f"{total_hours}小时{total_minutes}分钟"
-            except:
-                pass
+                # 格式化时间
+                formatted_times = []
+                for t in times:
+                    try:
+                        dt = datetime.fromisoformat(t)
+                        formatted_times.append(dt.strftime('%Y-%m-%d %H:%M:%S'))
+                    except:
+                        formatted_times.append(str(t))
+                
+                # 计算时长
+                morning_dur = ""
+                afternoon_dur = ""
+                total_dur = ""
+                
+                if len(times) >= 4:
+                    try:
+                        t1 = datetime.fromisoformat(times[0])
+                        t2 = datetime.fromisoformat(times[1])
+                        t3 = datetime.fromisoformat(times[2])
+                        t4 = datetime.fromisoformat(times[3])
+                        
+                        morning_sec = (t2 - t1).total_seconds()
+                        afternoon_sec = (t4 - t3).total_seconds()
+                        total_sec = morning_sec + afternoon_sec
+                        
+                        morning_dur = f"{int(morning_sec//3600)}小时{int((morning_sec%3600)//60)}分钟"
+                        afternoon_dur = f"{int(afternoon_sec//3600)}小时{int((afternoon_sec%3600)//60)}分钟"
+                        total_dur = f"{int(total_sec//3600)}小时{int((total_sec%3600)//60)}分钟"
+                    except Exception as e:
+                        logger.warning(f"  计算时长失败: {e}")
+                
+                # 填充到4列
+                while len(formatted_times) < 4:
+                    formatted_times.append("")
+                
+                # 构建行
+                row = [date] + formatted_times + [morning_dur, afternoon_dur, total_dur]
+                csv_lines.append(",".join(row))
+                
+            except Exception as e:
+                logger.error(f"处理日期{date}时出错: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                continue
         
-        # 填充空白列以确保CSV格式正确
-        while len(readable_times) < 4:
-            readable_times.append("")
+        # 4. 生成响应
+        logger.info(f"CSV总行数: {len(csv_lines)}")
+        csv_data = "\n".join(csv_lines)
         
-        row = [date] + readable_times + [morning_duration, afternoon_duration, total_duration]
-        csv_data += ",".join(row) + "\n"
-    
-    # 设置响应头以触发下载
-    response = app.response_class(
-        response=csv_data,
-        status=200,
-        mimetype='text/csv; charset=utf-8'
-    )
-    response.headers['Content-Disposition'] = 'attachment; filename=punches.csv'
-    return response
+        response = app.response_class(
+            response=csv_data,
+            status=200,
+            mimetype='text/csv; charset=utf-8'
+        )
+        response.headers['Content-Disposition'] = 'attachment; filename=punches.csv'
+        
+        logger.info("=== 导出成功 ===")
+        return response
+        
+    except Exception as e:
+        logger.error(f"!!! 导出失败 !!!")
+        logger.error(f"错误类型: {type(e).__name__}")
+        logger.error(f"错误信息: {str(e)}")
+        import traceback
+        logger.error(f"完整堆栈:\n{traceback.format_exc()}")
+        
+        # 返回JSON错误响应
+        return jsonify({
+            'success': False,
+            'message': f'导出失败: {str(e)}',
+            'error_type': type(e).__name__
+        }), 500
 
 # 为静态文件提供路由
 @app.route('/index.html')
