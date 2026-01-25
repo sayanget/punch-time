@@ -310,7 +310,8 @@ def salary_summary():
                         daily_details.append({
                             'date': date_str,
                             'hours': round(day_hours, 2),
-                            'salary': round(day_salary, 2)
+                            'salary': round(day_salary, 2),
+                            'calc_debug': [t.split('T')[1][:5] for t in calc_times] # Return HH:MM for verification
                         })
                     except Exception as e:
                         logger.warning(f"计算日期 {date_str} 工时失败: {e}")
