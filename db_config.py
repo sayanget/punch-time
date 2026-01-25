@@ -62,6 +62,7 @@ def init_database():
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         username VARCHAR(50) UNIQUE NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
+                        hourly_rate DECIMAL(10, 2) DEFAULT 0.00,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
@@ -95,6 +96,7 @@ def init_database():
                         id SERIAL PRIMARY KEY,
                         username VARCHAR(50) UNIQUE NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
+                        hourly_rate DECIMAL(10, 2) DEFAULT 0.00,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
@@ -131,6 +133,19 @@ def init_database():
         try:
             logger.info("检查并修复数据库唯一约束...")
             with engine.connect() as conn:
+                # Check for hourly_rate column and add if missing
+                logger.info("检查users表结构...")
+                result = conn.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'hourly_rate'
+                """))
+                if not result.fetchone():
+                    logger.info("添加hourly_rate字段...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN hourly_rate DECIMAL(10, 2) DEFAULT 0.00"))
+                    conn.commit()
+                    logger.info("✓ hourly_rate字段添加成功")
+                
                 # 检查是否存在旧的约束
                 result = conn.execute(text("""
                     SELECT conname 
@@ -172,7 +187,20 @@ def init_database():
                     logger.info("✓ 新约束已存在,无需修复")
                     
         except Exception as e:
-            logger.warning(f"约束修复失败(可能已经修复): {e}")
+            logger.warning(f"数据库检查修复失败: {e}")
+
+    # SQLite migration check
+    else:
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("PRAGMA table_info(users)"))
+                columns = [row[1] for row in result.fetchall()]
+                if 'hourly_rate' not in columns:
+                    logger.info("SQLite: 添加hourly_rate字段...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN hourly_rate DECIMAL(10, 2) DEFAULT 0.00"))
+                    conn.commit()
+        except Exception as e:
+            logger.error(f"SQLite迁移失败: {e}")
 
 def close_db(db=None):
     """关闭数据库连接"""
