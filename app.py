@@ -273,7 +273,12 @@ def salary_summary():
         # 过滤指定时间段的记录
         total_hours = 0.0
         total_days = 0
+        total_salary = 0.0
         daily_details = []
+        
+        cumulative_hours = 0.0
+        OVERTIME_THRESHOLD = 80.0
+        OVERTIME_RATE_MULTIPLIER = 1.5
         
         for date_str, records in sorted(all_punches.items()):
             if start_date <= date_str <= end_date:
@@ -302,22 +307,40 @@ def salary_summary():
                         morning_hours = (t2 - t1).total_seconds() / 3600
                         afternoon_hours = (t4 - t3).total_seconds() / 3600
                         day_hours = morning_hours + afternoon_hours
-                        day_salary = day_hours * hourly_rate
+                        
+                        # 计算薪资（带加班逻辑）
+                        previous_cumulative = cumulative_hours
+                        cumulative_hours += day_hours
+                        
+                        day_salary = 0.0
+                        
+                        if previous_cumulative >= OVERTIME_THRESHOLD:
+                            # 之前已经超过80小时，全按1.5倍计算
+                            day_salary = day_hours * hourly_rate * OVERTIME_RATE_MULTIPLIER
+                            logger.info(f"日期 {date_str}: 全程加班 ({day_hours:.2f}h)")
+                        elif cumulative_hours <= OVERTIME_THRESHOLD:
+                            # 加上今天也没超过80小时，全按1倍计算
+                            day_salary = day_hours * hourly_rate
+                        else:
+                            # 加上今天正好跨过80小时
+                            regular_part = OVERTIME_THRESHOLD - previous_cumulative
+                            overtime_part = day_hours - regular_part
+                            day_salary = (regular_part * hourly_rate) + (overtime_part * hourly_rate * OVERTIME_RATE_MULTIPLIER)
+                            logger.info(f"日期 {date_str}: 跨越加班线 (正常: {regular_part:.2f}h, 加班: {overtime_part:.2f}h)")
                         
                         total_hours += day_hours
                         total_days += 1
+                        total_salary += day_salary
                         
                         daily_details.append({
                             'date': date_str,
                             'hours': round(day_hours, 2),
                             'salary': round(day_salary, 2),
-                            'calc_debug': [t.split('T')[1][:5] for t in calc_times] # Return HH:MM for verification
+                            'calc_debug': [t.split('T')[1][:5] for t in calc_times]
                         })
                     except Exception as e:
                         logger.warning(f"计算日期 {date_str} 工时失败: {e}")
                         continue
-        
-        total_salary = total_hours * hourly_rate
         
         return jsonify({
             'success': True,
