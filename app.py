@@ -290,11 +290,14 @@ def salary_summary():
                 # 计算当日工作时长
                 if len(times) >= 4:
                     try:
+                        # 如果打卡次数大于4次，只取最后4次
+                        calc_times = times[-4:]
+                        
                         from datetime import datetime
-                        t1 = datetime.fromisoformat(times[0])
-                        t2 = datetime.fromisoformat(times[1])
-                        t3 = datetime.fromisoformat(times[2])
-                        t4 = datetime.fromisoformat(times[3])
+                        t1 = datetime.fromisoformat(calc_times[0])
+                        t2 = datetime.fromisoformat(calc_times[1])
+                        t3 = datetime.fromisoformat(calc_times[2])
+                        t4 = datetime.fromisoformat(calc_times[3])
                         
                         morning_hours = (t2 - t1).total_seconds() / 3600
                         afternoon_hours = (t4 - t3).total_seconds() / 3600
@@ -412,8 +415,11 @@ def export_punches():
                 
                 logger.info(f"  有效时间数: {len(times)}")
                 
-                # 最多取4个时间
-                times = times[:4]
+                # 最多取4个时间 (取最后4次)
+                if len(times) > 4:
+                    times = times[-4:]
+                else:
+                    times = times[:4]
                 
                 # 格式化时间
                 formatted_times = []
