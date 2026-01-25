@@ -276,8 +276,7 @@ def salary_summary():
         total_salary = 0.0
         daily_details = []
         
-        cumulative_hours = 0.0
-        OVERTIME_THRESHOLD = 80.0
+        DAILY_OVERTIME_THRESHOLD = 8.0
         OVERTIME_RATE_MULTIPLIER = 1.5
         
         for date_str, records in sorted(all_punches.items()):
@@ -307,36 +306,29 @@ def salary_summary():
                         morning_hours = (t2 - t1).total_seconds() / 3600
                         afternoon_hours = (t4 - t3).total_seconds() / 3600
                         
-                        # 核心修改：每天的工时先四舍五入保留2位小数，避免累积误差导致显示和计算不一致
+                        # 核心修改：每天的工时先四舍五入保留2位小数
                         day_hours = round(morning_hours + afternoon_hours, 2)
                         
-                        # 计算薪资（带加班逻辑）
-                        previous_cumulative = cumulative_hours
-                        cumulative_hours += day_hours
-                        
+                        # 计算薪资（每日8小时加班逻辑）
                         day_salary = 0.0
                         day_regular_hours = 0.0
                         day_overtime_hours = 0.0
                         
-                        if previous_cumulative >= OVERTIME_THRESHOLD:
-                            # 之前已经超过80小时，全按1.5倍计算
-                            day_overtime_hours = day_hours
-                            day_salary = day_hours * hourly_rate * OVERTIME_RATE_MULTIPLIER
-                            logger.info(f"日期 {date_str}: 全程加班 ({day_hours:.2f}h)")
-                        elif cumulative_hours <= OVERTIME_THRESHOLD:
-                            # 加上今天也没超过80小时，全按1倍计算
+                        if day_hours > DAILY_OVERTIME_THRESHOLD:
+                            # 超过8小时，分段计算
+                            day_regular_hours = DAILY_OVERTIME_THRESHOLD
+                            day_overtime_hours = round(day_hours - DAILY_OVERTIME_THRESHOLD, 2)
+                            
+                            regular_pay = day_regular_hours * hourly_rate
+                            overtime_pay = day_overtime_hours * hourly_rate * OVERTIME_RATE_MULTIPLIER
+                            day_salary = regular_pay + overtime_pay
+                            
+                            logger.info(f"日期 {date_str}: 加班 (正常: {day_regular_hours}h, 加班: {day_overtime_hours}h)")
+                        else:
+                            # 未超过8小时，全按正常算
                             day_regular_hours = day_hours
                             day_salary = day_hours * hourly_rate
-                        else:
-                            # 加上今天正好跨过80小时
-                            regular_part = round(OVERTIME_THRESHOLD - previous_cumulative, 2)
-                            overtime_part = round(day_hours - regular_part, 2) # fix floating point issues
-                            
-                            day_regular_hours = regular_part
-                            day_overtime_hours = overtime_part
-                            
-                            day_salary = (regular_part * hourly_rate) + (overtime_part * hourly_rate * OVERTIME_RATE_MULTIPLIER)
-                            logger.info(f"日期 {date_str}: 跨越加班线 (正常: {regular_part:.2f}h, 加班: {overtime_part:.2f}h)")
+                            logger.info(f"日期 {date_str}: 正常 ({day_hours}h)")
                         
                         total_hours += day_hours
                         total_days += 1
