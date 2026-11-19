@@ -3,7 +3,7 @@
 支持PostgreSQL和SQLite(本地开发)
 """
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import NullPool
 import logging
@@ -74,6 +74,9 @@ def init_database():
                         punch_date DATE NOT NULL,
                         punch_time TIMESTAMP NOT NULL,
                         is_late_shift BOOLEAN DEFAULT 0,
+                        latitude REAL,
+                        longitude REAL,
+                        location_name TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(user_id, punch_date, punch_time),
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -109,6 +112,9 @@ def init_database():
                         punch_date DATE NOT NULL,
                         punch_time TIMESTAMP NOT NULL,
                         is_late_shift BOOLEAN DEFAULT FALSE,
+                        latitude DOUBLE PRECISION,
+                        longitude DOUBLE PRECISION,
+                        location_name VARCHAR(500),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(user_id, punch_date, punch_time),
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -201,6 +207,25 @@ def init_database():
                     conn.commit()
         except Exception as e:
             logger.error(f"SQLite迁移失败: {e}")
+
+    ensure_location_columns()
+
+def ensure_location_columns():
+    """为旧库的punches表补齐地理位置字段"""
+    if DATABASE_URL.startswith('sqlite'):
+        column_types = {'latitude': 'REAL', 'longitude': 'REAL', 'location_name': 'TEXT'}
+    else:
+        column_types = {'latitude': 'DOUBLE PRECISION', 'longitude': 'DOUBLE PRECISION', 'location_name': 'VARCHAR(500)'}
+    try:
+        with engine.connect() as conn:
+            existing = {col['name'] for col in inspect(conn).get_columns('punches')}
+            for name, col_type in column_types.items():
+                if name not in existing:
+                    logger.info(f"添加punches.{name}字段...")
+                    conn.execute(text(f"ALTER TABLE punches ADD COLUMN {name} {col_type}"))
+            conn.commit()
+    except Exception as e:
+        logger.error(f"地理位置字段迁移失败: {e}")
 
 def close_db(db=None):
     """关闭数据库连接"""
